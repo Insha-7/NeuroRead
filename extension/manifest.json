@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "NeuroRead AI",
   "version": "2.0.0",
-  "description": "Multimodal AI accessibility for Neurodivergent Readers.",
+  "description": "AI-powered accessibility for neurodivergent readers.",
   "permissions": [
     "activeTab",
     "scripting",

@@ -3,70 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <title>NeuroRead AI</title>
-  <link rel="stylesheet" href="popup.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 280px;
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: #e2e8f0;
+      padding: 20px;
+    }
+    h2 { font-size: 18px; margin-bottom: 14px; color: #a78bfa; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #btn-activate { background: #7c3aed; color: #fff; }
+    #btn-deactivate { background: #333; color: #aaa; }
+    #status { margin-top: 10px; font-size: 12px; color: #64748b; text-align: center; }
+  </style>
 </head>
 <body>
-  <div class="glass-container">
-    <header>
-      <h1>NeuroRead AI</h1>
-      <div id="cam-badge" class="badge">CAM: --</div>
-    </header>
-
-    <div class="profile-grid">
-      <div class="profile-card" data-profile="adhd">
-        <h3>ADHD</h3>
-        <p>High contrast</p>
-      </div>
-      <div class="profile-card" data-profile="autism">
-        <h3>Autism</h3>
-        <p>Low noise</p>
-      </div>
-      <div class="profile-card" data-profile="dyslexia">
-        <h3>Dyslexia</h3>
-        <p>OpenDyslexic</p>
-      </div>
-      <div class="profile-card" data-profile="custom">
-        <h3>Custom</h3>
-        <p>Build your own</p>
-      </div>
-    </div>
-
-    <!-- Dynamic Toggles Menu -->
-    <div class="feature-menu" id="feature-menu">
-      <label class="toggle-row">
-        <span>Focus Mode</span>
-        <input type="checkbox" id="toggle-focusMode">
-        <div class="slider"></div>
-      </label>
-      <label class="toggle-row">
-        <span>Reading Ruler</span>
-        <input type="checkbox" id="toggle-readingRuler">
-        <div class="slider"></div>
-      </label>
-      <label class="toggle-row">
-        <span>ADHD Colors</span>
-        <input type="checkbox" id="toggle-adhdColours">
-        <div class="slider"></div>
-      </label>
-      <label class="toggle-row">
-        <span>Voice Commands 🎙️</span>
-        <input type="checkbox" id="toggle-voiceCommands">
-        <div class="slider"></div>
-      </label>
-      <label class="toggle-row">
-        <span style="color:#A78BFA">Play Text (TTS)</span>
-        <button id="btn-tts-play">▶ Play</button>
-      </label>
-    </div>
-
-    <div class="actions">
-      <button id="btn-deactivate" class="btn-secondary">Deactivate</button>
-      <button id="btn-activate" class="btn-primary">✨ Activate</button>
-    </div>
-
-    <div id="status-bar" class="status-bar">Select a profile to begin</div>
-  </div>
-
+  <h2>NeuroRead AI</h2>
+  <button class="btn" id="btn-activate">Activate Formatting</button>
+  <button class="btn" id="btn-deactivate">Deactivate</button>
+  <div id="status">Module 1 — Font & Color</div>
   <script src="popup.js"></script>
 </body>
 </html>
