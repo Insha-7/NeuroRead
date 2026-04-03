@@ -1,5 +1,5 @@
 import time
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -119,6 +119,26 @@ def simplify_text(request: SimplifyRequest):
     return {
         "success": True,
         "simplified_chunks": simplified
+    }
+
+
+@app.post("/voice")
+async def voice_transcribe(audio: UploadFile = File(...)):
+    """
+    Module 4: Voice Transcription
+    Accepts an audio file upload and returns Groq Whisper transcription.
+    """
+    from voice_transcriber import transcribe_audio
+    
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+    
+    transcription = transcribe_audio(audio_bytes, filename=audio.filename or "recording.webm")
+    
+    return {
+        "success": True,
+        "transcription": transcription
     }
 
 if __name__ == "__main__":

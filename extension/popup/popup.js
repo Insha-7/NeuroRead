@@ -5,6 +5,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnFocusOff = document.getElementById("btn-focus-off");
   const btnSimplify = document.getElementById("btn-simplify");
   const btnSimplifyOff = document.getElementById("btn-simplify-off");
+  const btnRead = document.getElementById("btn-read");
+  const btnReadOff = document.getElementById("btn-read-off");
+  const btnVoice = document.getElementById("btn-voice");
   const status = document.getElementById("status");
 
   async function getTabId() {
@@ -94,5 +97,38 @@ document.addEventListener("DOMContentLoaded", () => {
     status.textContent = "3. Originals restored.";
   });
 
+  /* ---------------------------------
+   * MODULE 4: READ ALOUD & VOICE CMD
+   * --------------------------------- */
+  function cmdReadAct() { return window.NR_SpeechOut.activate(); }
+  function cmdReadDeact() { return window.NR_SpeechOut.deactivate(); }
+  function cmdVoiceAct() { return window.NR_SpeechIn.activate(); }
+
+  btnRead.addEventListener("click", async () => {
+    const tabId = await getTabId();
+    if (!tabId) return;
+    status.textContent = "Reading aloud…";
+    const res = await executeFeature(tabId, "features/speech-out.js", cmdReadAct);
+    status.textContent = res && res.success ? "4. Reading…" : "❌ " + (res && res.error);
+  });
+
+  btnReadOff.addEventListener("click", async () => {
+    const tabId = await getTabId();
+    if (!tabId) return;
+    await executeFeature(tabId, "features/speech-out.js", cmdReadDeact);
+    status.textContent = "4. Reading stopped.";
+  });
+
+  btnVoice.addEventListener("click", async () => {
+    const tabId = await getTabId();
+    if (!tabId) return;
+    status.textContent = "🎤 Listening (5s)…";
+    // Inject all feature scripts so voice commands can call them
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["features/formatting.js"] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["features/ai-text.js"] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["features/speech-out.js"] });
+    const res = await executeFeature(tabId, "features/speech-in.js", cmdVoiceAct);
+    status.textContent = res && res.success ? "🎤 " + (res.message || "Listening…") : "❌ " + (res && res.error);
+  });
 
 });
