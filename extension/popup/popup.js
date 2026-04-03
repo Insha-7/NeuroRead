@@ -1,14 +1,16 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const btnActivate = document.getElementById("btn-activate");
-  const btnDeactivate = document.getElementById("btn-deactivate");
-  const btnFocus = document.getElementById("btn-focus");
-  const btnFocusOff = document.getElementById("btn-focus-off");
-  const btnSimplify = document.getElementById("btn-simplify");
-  const btnSimplifyOff = document.getElementById("btn-simplify-off");
-  const btnRead = document.getElementById("btn-read");
-  const btnReadOff = document.getElementById("btn-read-off");
-  const btnVoice = document.getElementById("btn-voice");
+document.addEventListener("DOMContentLoaded", async () => {
   const status = document.getElementById("status");
+  const btnVoice = document.getElementById("btn-voice");
+  
+  const toggles = {
+    formatting: document.getElementById("toggle-formatting"),
+    focus: document.getElementById("toggle-focus"),
+    simplify: document.getElementById("toggle-simplify"),
+    read: document.getElementById("toggle-read"),
+    toc: document.getElementById("toggle-toc")
+  };
+
+  const profileCards = document.querySelectorAll(".profile-card");
 
   async function getTabId() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -27,124 +29,155 @@ document.addEventListener("DOMContentLoaded", () => {
         target: { tabId, allFrames: true },
         func: closureFunc
       });
-      // We return the result from the main frame (usually results[0])
-      return results && results.length > 0 ? results[0].result : { success: false, error: "No frames" };
+      return results && results.length > 0 ? results[0].result : { success: false };
     } catch (err) {
       return { success: false, error: err.message };
     }
   }
 
-  /* ---------------------------------
-   * MODULE 1: FORMATTING
-   * --------------------------------- */
-  function cmdFormatAct() { return window.NR_Formatting.activate(); }
-  function cmdFormatDeact() { return window.NR_Formatting.deactivate(); }
+  // Storage wrappers
+  async function saveState() {
+    const state = {
+      formatting: toggles.formatting.checked,
+      focus: toggles.focus.checked,
+      simplify: toggles.simplify.checked,
+      read: toggles.read.checked,
+      toc: toggles.toc.checked,
+      activeProfile: document.querySelector('.profile-card.active')?.dataset.preset || 'custom'
+    };
+    await chrome.storage.local.set({ nrState: state });
+  }
 
-  btnActivate.addEventListener("click", async () => {
-    const tabId = await getTabId();
-    if (!tabId) return;
-    status.textContent = "Injecting…";
-    const res = await executeFeature(tabId, "features/formatting.js", cmdFormatAct);
-    status.textContent = res && res.success ? "1. Formatting applied!" : "❌ " + (res && res.error);
-  });
+  async function loadState() {
+    const res = await chrome.storage.local.get("nrState");
+    if (res.nrState) {
+      Object.keys(toggles).forEach(k => {
+        if (res.nrState[k] !== undefined) toggles[k].checked = res.nrState[k];
+      });
+      setProfileActive(res.nrState.activeProfile || 'custom');
+    }
+  }
 
-  btnDeactivate.addEventListener("click", async () => {
-    const tabId = await getTabId();
-    if (!tabId) return;
-    await executeFeature(tabId, "features/formatting.js", cmdFormatDeact);
-    status.textContent = "1. Formatting removed.";
-  });
-
-  /* ---------------------------------
-   * MODULE 2: FOCUS BLOCKER
-   * --------------------------------- */
-  function cmdFocusAct() { return window.NR_FocusBlock.activate(); }
-  function cmdFocusDeact() { return window.NR_FocusBlock.deactivate(); }
-
-  btnFocus.addEventListener("click", async () => {
-    const tabId = await getTabId();
-    if (!tabId) return;
-    status.textContent = "Activating ad block…";
-    await executeFeature(tabId, "features/focus-blocker.js", cmdFocusAct);
-    status.textContent = "2. Ads & Autoplay Blocked!";
-  });
-
-  btnFocusOff.addEventListener("click", async () => {
-    const tabId = await getTabId();
-    if (!tabId) return;
-    await executeFeature(tabId, "features/focus-blocker.js", cmdFocusDeact);
-    status.textContent = "2. Blockers removed.";
-  });
+  function setProfileActive(preset) {
+    profileCards.forEach(c => c.classList.remove('active'));
+    const target = document.querySelector(`.profile-card[data-preset="${preset}"]`);
+    if (target) target.classList.add('active');
+  }
 
   /* ---------------------------------
-   * MODULE 3: AI TEXT SIMPLIFICATION
+   * FEATURE EXECUTION MAP
    * --------------------------------- */
-  function cmdSimplifyAct() { return window.NR_AiText.activate(); }
-  function cmdSimplifyDeact() { return window.NR_AiText.deactivate(); }
+  const features = {
+    formatting: {
+      file: "features/formatting.js",
+      on: function() { return window.NR_Formatting.activate(); },
+      off: function() { return window.NR_Formatting.deactivate(); }
+    },
+    focus: {
+      file: "features/focus-blocker.js",
+      on: function() { return window.NR_FocusBlock.activate(); },
+      off: function() { return window.NR_FocusBlock.deactivate(); }
+    },
+    simplify: {
+      file: "features/ai-text.js",
+      on: function() { return window.NR_AiText.activate(); },
+      off: function() { return window.NR_AiText.deactivate(); }
+    },
+    read: {
+      file: "features/speech-out.js",
+      on: function() { return window.NR_SpeechOut.activate(); },
+      off: function() { return window.NR_SpeechOut.deactivate(); }
+    },
+    toc: {
+      file: "features/visual-enhancement.js",
+      on: function() { return window.NR_Visual.activate(); },
+      off: function() { return window.NR_Visual.deactivate(); }
+    }
+  };
 
-  btnSimplify.addEventListener("click", async () => {
+  async function toggleFeature(key, turnOn) {
     const tabId = await getTabId();
     if (!tabId) return;
-    status.textContent = "Simplifying text (AI)…";
-    const res = await executeFeature(tabId, "features/ai-text.js", cmdSimplifyAct);
-    status.textContent = res && res.success ? "3. Text Simplified!" : "❌ " + (res && res.error);
-  });
+    status.textContent = turnOn ? `Activating ${key}…` : `Deactivating ${key}…`;
+    
+    const feat = features[key];
+    const func = turnOn ? feat.on : feat.off;
+    const res = await executeFeature(tabId, feat.file, func);
+    
+    if (res && res.error) {
+       status.textContent = `❌ ${res.error}`;
+    } else {
+       status.textContent = "Ready.";
+    }
+  }
 
-  btnSimplifyOff.addEventListener("click", async () => {
-    const tabId = await getTabId();
-    if (!tabId) return;
-    await executeFeature(tabId, "features/ai-text.js", cmdSimplifyDeact);
-    status.textContent = "3. Originals restored.";
+  // Attach Toggle Listeners
+  Object.keys(toggles).forEach(key => {
+    toggles[key].addEventListener('change', async (e) => {
+      setProfileActive('custom'); // Manual toggle switches to custom mode
+      await toggleFeature(key, e.target.checked);
+      await saveState();
+    });
   });
 
   /* ---------------------------------
-   * MODULE 4: READ ALOUD & VOICE CMD
+   * USER PROFILES (PRESETS)
    * --------------------------------- */
-  function cmdReadAct() { return window.NR_SpeechOut.activate(); }
-  function cmdReadDeact() { return window.NR_SpeechOut.deactivate(); }
-  function cmdVoiceAct() { return window.NR_SpeechIn.activate(); }
+  const presets = {
+    adhd: { formatting: true, focus: true, simplify: false, read: false, toc: true },
+    dyslexia: { formatting: true, focus: false, simplify: true, read: true, toc: false },
+    autism: { formatting: true, focus: true, simplify: true, read: false, toc: false }
+  };
 
-  btnRead.addEventListener("click", async () => {
-    const tabId = await getTabId();
-    if (!tabId) return;
-    status.textContent = "Reading aloud…";
-    const res = await executeFeature(tabId, "features/speech-out.js", cmdReadAct);
-    status.textContent = res && res.success ? "4. Reading…" : "❌ " + (res && res.error);
+  profileCards.forEach(card => {
+    card.addEventListener('click', async () => {
+      const presetName = card.dataset.preset;
+      setProfileActive(presetName);
+      
+      if (presetName !== 'custom' && presets[presetName]) {
+        // Apply preset
+        const config = presets[presetName];
+        status.textContent = `Applying ${presetName.toUpperCase()} Profile…`;
+        
+        for (const key of Object.keys(toggles)) {
+          const shouldBeOn = config[key];
+          if (toggles[key].checked !== shouldBeOn) {
+            toggles[key].checked = shouldBeOn;
+            await toggleFeature(key, shouldBeOn);
+          }
+        }
+        status.textContent = `${presetName.toUpperCase()} Profile Active`;
+      }
+      await saveState();
+    });
   });
 
-  btnReadOff.addEventListener("click", async () => {
-    const tabId = await getTabId();
-    if (!tabId) return;
-    await executeFeature(tabId, "features/speech-out.js", cmdReadDeact);
-    status.textContent = "4. Reading stopped.";
-  });
-
+  /* ---------------------------------
+   * VOICE COMMAND (Always manual)
+   * --------------------------------- */
   btnVoice.addEventListener("click", async () => {
     const tabId = await getTabId();
     if (!tabId) return;
-    status.textContent = "🎤 Listening (5s)…";
-    // Inject all feature scripts so voice commands can call them
+    
+    btnVoice.classList.add("listening");
+    btnVoice.textContent = "🎤 Listening...";
+    
+    // Inject dependencies
     await chrome.scripting.executeScript({ target: { tabId }, files: ["features/formatting.js"] });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["features/ai-text.js"] });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["features/speech-out.js"] });
-    const res = await executeFeature(tabId, "features/speech-in.js", cmdVoiceAct);
-    status.textContent = res && res.success ? "🎤 " + (res.message || "Listening…") : "❌ " + (res && res.error);
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["features/visual-enhancement.js"] });
+    
+    const res = await executeFeature(tabId, "features/speech-in.js", function() { return window.NR_SpeechIn.activate(); });
+    
+    setTimeout(() => {
+      btnVoice.classList.remove("listening");
+      btnVoice.textContent = "🎤 Listen";
+    }, 5000);
+    
+    if (res && res.error) status.textContent = `❌ ${res.error}`;
   });
 
-  /* ---------------------------------
-   * MODULE 5: VISUAL ENHANCEMENT
-   * --------------------------------- */
-  const btnToc = document.getElementById("btn-toc");
-  function cmdTocAct() { return window.NR_Visual.activate(); }
-
-  if (btnToc) {
-    btnToc.addEventListener("click", async () => {
-      const tabId = await getTabId();
-      if (!tabId) return;
-      status.textContent = "Loading Navigation…";
-      const res = await executeFeature(tabId, "features/visual-enhancement.js", cmdTocAct);
-      status.textContent = res && res.success ? "5. Navigation opened!" : "❌ " + (res && res.error);
-    });
-  }
-
+  // Init
+  await loadState();
 });

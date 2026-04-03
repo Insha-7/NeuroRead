@@ -3,48 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <title>NeuroRead AI</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      width: 280px;
-      font-family: system-ui, sans-serif;
-      background: #111;
-      color: #e2e8f0;
-      padding: 20px;
-    }
-    h2 { font-size: 18px; margin-bottom: 14px; color: #a78bfa; }
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    #btn-activate { background: #7c3aed; color: #fff; }
-    #btn-deactivate { background: #333; color: #aaa; }
-    .btn-focus { background: #ea580c; color: #fff; }
-    .btn-focus-off { background: #333; color: #aaa; }
-    #status { margin-top: 10px; font-size: 12px; color: #64748b; text-align: center; }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h2>NeuroRead AI</h2>
-  <button class="btn" id="btn-activate">1. Format Text</button>
-  <button class="btn" id="btn-deactivate">1. Undo Format</button>
-  <button class="btn btn-focus" id="btn-focus">2. Block Ads & Autoplay</button>
-  <button class="btn btn-focus-off" id="btn-focus-off">2. Unblock Ads</button>
-  <button class="btn" id="btn-simplify" style="background: #059669;">3. Simplify Text (AI)</button>
-  <button class="btn" id="btn-simplify-off" style="background: #333; color: #aaa;">3. Undo Simplify</button>
-  <button class="btn" id="btn-read" style="background: #2563EB;">4. Read Aloud</button>
-  <button class="btn" id="btn-read-off" style="background: #333; color: #aaa;">4. Stop Reading</button>
-  <button class="btn" id="btn-voice" style="background: #DC2626;">🎤 Voice Command</button>
-  <button class="btn" id="btn-toc" style="background: #D97706;">5. Show Navigation</button>
+  <header>
+    <h1>NeuroRead AI</h1>
+  </header>
+
+  <div class="section-title">Quick Profiles</div>
+  <div class="profiles-grid">
+    <div class="profile-card" data-preset="adhd">
+      <div class="profile-icon">🎯</div>
+      <div class="profile-name">ADHD</div>
+    </div>
+    <div class="profile-card" data-preset="dyslexia">
+      <div class="profile-icon">👁️</div>
+      <div class="profile-name">Dyslexia</div>
+    </div>
+    <div class="profile-card" data-preset="autism">
+      <div class="profile-icon">🧩</div>
+      <div class="profile-name">Autism</div>
+    </div>
+    <div class="profile-card active" data-preset="custom">
+      <div class="profile-icon">⚙️</div>
+      <div class="profile-name">Custom</div>
+    </div>
+  </div>
+
+  <div class="section-title">Features</div>
+  <div class="features-container">
+    
+    <div class="feature-row">
+      <div class="feature-info">
+        <div class="feature-name">Formatting</div>
+        <div class="feature-desc">AI-tailored typography & colors</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-formatting">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-info">
+        <div class="feature-name">Focus Block</div>
+        <div class="feature-desc">Block ads & autoplay videos</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-focus">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-info">
+        <div class="feature-name">Simplify Text</div>
+        <div class="feature-desc">Explain complex text simply</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-simplify">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-info">
+        <div class="feature-name">Read Aloud</div>
+        <div class="feature-desc">Word-highlighting TTS</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-read">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-info">
+        <div class="feature-name">Navigation</div>
+        <div class="feature-desc">Floating TOC & deep search</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-toc">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="feature-row voice-row">
+      <div class="feature-info">
+        <div class="feature-name">Voice Command</div>
+        <div class="feature-desc">Hands-free control</div>
+      </div>
+      <button id="btn-voice">🎤 Listen</button>
+    </div>
+
+  </div>
+
   <div id="status">NeuroRead is Ready.</div>
+  
   <script src="popup.js"></script>
 </body>
 </html>
