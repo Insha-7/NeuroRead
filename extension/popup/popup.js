@@ -131,4 +131,20 @@ document.addEventListener("DOMContentLoaded", () => {
     status.textContent = res && res.success ? "🎤 " + (res.message || "Listening…") : "❌ " + (res && res.error);
   });
 
+  /* ---------------------------------
+   * MODULE 5: VISUAL ENHANCEMENT
+   * --------------------------------- */
+  const btnToc = document.getElementById("btn-toc");
+  function cmdTocAct() { return window.NR_Visual.activate(); }
+
+  if (btnToc) {
+    btnToc.addEventListener("click", async () => {
+      const tabId = await getTabId();
+      if (!tabId) return;
+      status.textContent = "Loading Navigation…";
+      const res = await executeFeature(tabId, "features/visual-enhancement.js", cmdTocAct);
+      status.textContent = res && res.success ? "5. Navigation opened!" : "❌ " + (res && res.error);
+    });
+  }
+
 });
