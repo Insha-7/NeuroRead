@@ -87,19 +87,47 @@ def get_profile(profile_id: str):
             "name": "ADHD",
             "ttsSpeed": 1.3,
             "features": {"adhdColours": True, "focusMode": False, "readingRuler": False},
-            "css": "/* ADHD Base CSS */\\n:root {\\n  --nr-font-size: 22px;\\n  --nr-line-height: 1.85;\\n  --nr-background: #FFFFFF;\\n  --nr-text-color: #1A1A1A;\\n  --nr-h1-color: #6A0DAD;\\n  --nr-h2-color: #7B2FBE;\\n  --nr-fact-color: #E67E00;\\n  --nr-quote-color: #007777;\\n}"
+            "css": """/* ADHD Base CSS */
+:root {
+  --nr-font-size: 22px;
+  --nr-line-height: 1.85;
+  --nr-background: #FFFFFF;
+  --nr-text-color: #1A1A1A;
+  --nr-h1-color: #6A0DAD;
+  --nr-h2-color: #7B2FBE;
+  --nr-fact-color: #E67E00;
+  --nr-quote-color: #007777;
+}"""
         },
         "autism": {
             "name": "Autism",
             "ttsSpeed": 0.9,
             "features": {"adhdColours": False, "focusMode": True, "readingRuler": False},
-            "css": "/* Autism Base CSS */\\n:root {\\n  --nr-font-size: 20px;\\n  --nr-line-height: 2.0;\\n  --nr-background: #FAF9F2;\\n  --nr-text-color: #2C2C2C;\\n}"
+            "css": """/* Autism Base CSS */
+:root {
+  --nr-font-size: 20px;
+  --nr-line-height: 2.0;
+  --nr-background: #FAF9F2;
+  --nr-text-color: #2C2C2C;
+}"""
         },
         "dyslexia": {
             "name": "Dyslexia",
             "ttsSpeed": 1.0,
             "features": {"adhdColours": False, "focusMode": False, "readingRuler": True},
-            "css": "/* Dyslexia Base CSS */\\n@font-face {\\n  font-family: 'OpenDyslexic';\\n  src: url('chrome-extension://__EXTENSION_ID__/fonts/OpenDyslexic-Regular.otf') format('opentype');\\n}\\n:root {\\n  --nr-font-family: 'OpenDyslexic', sans-serif;\\n  --nr-font-size: 20px;\\n  --nr-line-height: 2.0;\\n  --nr-letter-spacing: 0.05em;\\n  --nr-word-spacing: 0.15em;\\n  --nr-background: #FFFEF0;\\n}"
+            "css": """/* Dyslexia Base CSS */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('chrome-extension://__EXTENSION_ID__/fonts/OpenDyslexic-Regular.otf') format('opentype');
+}
+:root {
+  --nr-font-family: 'OpenDyslexic', sans-serif;
+  --nr-font-size: 20px;
+  --nr-line-height: 2.0;
+  --nr-letter-spacing: 0.05em;
+  --nr-word-spacing: 0.15em;
+  --nr-background: #FFFEF0;
+}"""
         },
         "custom": {
             "name": "Custom",
@@ -149,9 +177,9 @@ async def analyze_sentences(req: AnalyzeRequest):
             # Store in cache
             if "sentences" in ai_result:
                 for res_sent in ai_result["sentences"]:
-                    if res_sent["simplified"]:
+                    if res_sent.get("simplified"):
                         # find original text to hash
-                        orig = next((m.text for m in misses if m.id == res_sent["id"]), None)
+                        orig = next((m.text for m in misses if m.id == res_sent.get("id")), None)
                         if orig:
                             sentence_cache[get_hash(orig)] = res_sent["simplified"]
                             
