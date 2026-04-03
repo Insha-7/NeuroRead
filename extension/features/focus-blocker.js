@@ -43,36 +43,72 @@
     if (existing) existing.remove();
   }
 
-  // Find all <audio> and <video> elements on the page and forcefully pause them.
-  // We use MutationObserver to catch auto-playing videos that inject later.
+  const SCRIPT_ID = "nr-main-world-hook";
+
+  // The Ultimate Two-Pronged Autoplay Blocker
   function stopAutoplay() {
-    const haltMedia = () => {
-      const mediaElements = document.querySelectorAll('video, audio');
-      mediaElements.forEach(media => {
-        // Strip out autoplay attribute
-        if (media.hasAttribute('autoplay')) {
-          media.removeAttribute('autoplay');
-        }
-        // Force pause
-        if (!media.paused) {
-          media.pause();
-          console.log("[NeuroRead] Halted autoplaying media.");
-        }
-      });
+    
+    // PRONG 1: Hook the main world's video.play() to block programmatic autoplay (e.g. CNN on-scroll videos)
+    // We use navigator.userActivation to accurately determine if the user actually clicked to play.
+    if (!document.getElementById(SCRIPT_ID)) {
+      const script = document.createElement("script");
+      script.id = SCRIPT_ID;
+      script.textContent = `
+        (function() {
+          const originalPlay = HTMLMediaElement.prototype.play;
+          HTMLMediaElement.prototype.play = function() {
+            // navigator.userActivation.isActive is true only if the user clicked/typed recently (within ~5 secs).
+            // Scrolling does NOT activate it. This completely annihilates on-scroll ad players!
+            if (!navigator.userActivation.isActive && !navigator.userActivation.hasBeenActive) {
+              console.log("[NeuroRead/Autoplay] Blocked JS-initiated autoplay. User didn't click.");
+              this.pause();
+              // Prevent audio blasting
+              this.muted = true; 
+              return Promise.reject(new DOMException("Autoplay blocked by NeuroRead AI.", "NotAllowedError"));
+            }
+            return originalPlay.apply(this, arguments);
+          };
+        })();
+      `;
+      (document.head || document.documentElement).appendChild(script);
+    }
+
+    // PRONG 2: Strip native HTML attributes to block browser-native autoplay
+    const haltNode = (node) => {
+      if (node.tagName === 'VIDEO' || node.tagName === 'AUDIO') {
+        if (node.hasAttribute('autoplay')) node.removeAttribute('autoplay');
+        if (!node.paused) node.pause();
+      }
     };
 
-    haltMedia(); // Run immediately
+    // Strip existing media
+    document.querySelectorAll('video, audio').forEach(haltNode);
 
-    // Watch for new video elements injected by SPA frameworks or ad scripts
+    // Watch for newly injected media (React/Vue/Ad Scripts dynamically injecting <video>)
     if (!observer) {
       observer = new MutationObserver((mutations) => {
-        let shouldCheck = false;
-        mutations.forEach(m => {
-          if (m.addedNodes.length > 0) shouldCheck = true;
-        });
-        if (shouldCheck) haltMedia();
+        for (const m of mutations) {
+          if (m.addedNodes) {
+            for (const n of m.addedNodes) {
+              haltNode(n);
+              if (n.querySelectorAll) {
+                n.querySelectorAll('video, audio').forEach(haltNode);
+              }
+            }
+          }
+          // Catch scripts manually trying to set the autoplay attribute
+          if (m.type === 'attributes' && m.attributeName === 'autoplay') {
+             haltNode(m.target);
+          }
+        }
       });
-      observer.observe(document.body, { childList: true, subtree: true });
+
+      observer.observe(document.body || document.documentElement, { 
+        childList: true, 
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['autoplay']
+      });
     }
   }
 
@@ -81,6 +117,8 @@
       observer.disconnect();
       observer = null;
     }
+    const hook = document.getElementById(SCRIPT_ID);
+    if (hook) hook.remove();
   }
 
   function enableNetworkBlocking() {
@@ -99,7 +137,6 @@
       stopAutoplay();
       return new Promise((resolve) => {
         chrome.runtime.sendMessage({ type: "TOGGLE_AD_RULES", enable: true }, () => {
-          window.location.reload();
           resolve({ success: true });
         });
       });
@@ -110,7 +147,6 @@
       allowAutoplay();
       return new Promise((resolve) => {
         chrome.runtime.sendMessage({ type: "TOGGLE_AD_RULES", enable: false }, () => {
-          window.location.reload();
           resolve({ success: true });
         });
       });

@@ -14,15 +14,16 @@ document.addEventListener("DOMContentLoaded", () => {
     return tab.id;
   }
 
-  // Inject a file if not already present, then execute a function natively
+  // Inject a file if not already present, then execute a function natively (Across ALL frames payload)
   async function executeFeature(tabId, file, closureFunc) {
     try {
-      await chrome.scripting.executeScript({ target: { tabId }, files: [file] });
+      await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: [file] });
       const results = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId, allFrames: true },
         func: closureFunc
       });
-      return results[0].result;
+      // We return the result from the main frame (usually results[0])
+      return results && results.length > 0 ? results[0].result : { success: false, error: "No frames" };
     } catch (err) {
       return { success: false, error: err.message };
     }
