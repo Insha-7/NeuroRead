@@ -173,7 +173,7 @@ def generate_css_map(html_skeleton: str) -> dict:
     # Initialize the Groq model
     llm = ChatGroq(
         api_key=os.getenv("GROQ_API_KEY"),
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         temperature=0.1,  # Keep it deterministic
     )
     

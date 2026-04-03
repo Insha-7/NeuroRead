@@ -2,6 +2,7 @@ import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List
 
 app = FastAPI(title="NeuroRead API Settings Backend")
 
@@ -96,6 +97,28 @@ def analyze_site(request: SkeletonRequest):
                 "remove_decorative_shadows": ai_response.get("remove_decorative_shadows", True)
             }
         }
+    }
+
+class SimplifyRequest(BaseModel):
+    text_chunks: List[str]
+
+@app.post("/simplify")
+def simplify_text(request: SimplifyRequest):
+    """
+    Module 3: AI Text Simplification
+    Accepts up to 10 text chunks and simplifies them for ADHD/Autism friendly reading.
+    """
+    from text_simplifier import simplify_text_chunks
+    
+    # Chunked batching (max 10 chunks)
+    max_batch = 10
+    chunks = request.text_chunks[:max_batch]
+    
+    simplified = simplify_text_chunks(chunks)
+    
+    return {
+        "success": True,
+        "simplified_chunks": simplified
     }
 
 if __name__ == "__main__":

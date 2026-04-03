@@ -3,6 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnDeactivate = document.getElementById("btn-deactivate");
   const btnFocus = document.getElementById("btn-focus");
   const btnFocusOff = document.getElementById("btn-focus-off");
+  const btnSimplify = document.getElementById("btn-simplify");
+  const btnSimplifyOff = document.getElementById("btn-simplify-off");
   const status = document.getElementById("status");
 
   async function getTabId() {
@@ -69,6 +71,27 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!tabId) return;
     await executeFeature(tabId, "features/focus-blocker.js", cmdFocusDeact);
     status.textContent = "2. Blockers removed.";
+  });
+
+  /* ---------------------------------
+   * MODULE 3: AI TEXT SIMPLIFICATION
+   * --------------------------------- */
+  function cmdSimplifyAct() { return window.NR_AiText.activate(); }
+  function cmdSimplifyDeact() { return window.NR_AiText.deactivate(); }
+
+  btnSimplify.addEventListener("click", async () => {
+    const tabId = await getTabId();
+    if (!tabId) return;
+    status.textContent = "Simplifying text (AI)…";
+    const res = await executeFeature(tabId, "features/ai-text.js", cmdSimplifyAct);
+    status.textContent = res && res.success ? "3. Text Simplified!" : "❌ " + (res && res.error);
+  });
+
+  btnSimplifyOff.addEventListener("click", async () => {
+    const tabId = await getTabId();
+    if (!tabId) return;
+    await executeFeature(tabId, "features/ai-text.js", cmdSimplifyDeact);
+    status.textContent = "3. Originals restored.";
   });
 
 
