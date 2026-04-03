@@ -27,4 +27,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     return true; // keep channel open for async response
   }
+
+  // Handle toggling network-level adblocking rules
+  if (msg.type === "TOGGLE_AD_RULES") {
+    if (msg.enable) {
+      chrome.declarativeNetRequest.updateEnabledRulesets({
+        enableRulesetIds: ["ruleset_1"]
+      }).catch(err => console.error("Could not enable ruleset", err));
+    } else {
+      chrome.declarativeNetRequest.updateEnabledRulesets({
+        disableRulesetIds: ["ruleset_1"]
+      }).catch(err => console.error("Could not disable ruleset", err));
+    }
+    sendResponse({ success: true });
+    return false;
+  }
 });

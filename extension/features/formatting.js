@@ -1,6 +1,6 @@
 // NeuroRead AI — formatting.js
-// Module 1: Bigger font size, font color, line height injection.
-// Applies CSS variables to semantic elements without breaking page layout.
+// Module 1: AI-Driven Formatting Scanner
+// Collects DOM skeleton, sends to Groq backend, receives perfect CSS selectors.
 
 (function () {
   "use strict";
@@ -10,11 +10,35 @@
   const STYLE_ID = "nr-formatting-style";
   const API = "http://localhost:8000";
 
-  // Fetch settings from our backend via the service-worker proxy
+  // Build a lightweight skeleton of the site structure for the AI to analyze
+  function buildSkeleton() {
+    const elements = document.querySelectorAll('main, article, section, header, div[class*="content"], h1, h2, h3, p, img');
+    let skeleton = "";
+    let count = 0;
+    for (let el of elements) {
+      if (count > 250) break; // Prevent massive payloads
+      let tag = el.tagName.toLowerCase();
+      let id = el.id ? `#${el.id}` : '';
+      let cls = el.className && typeof el.className === 'string' ? `.${el.className.split(' ').join('.')}` : '';
+      if (cls.length > 50) cls = cls.substring(0, 50); // Trim crazy tailwind classes
+      skeleton += `<${tag}${id}${cls}>\n`;
+      count++;
+    }
+    return skeleton;
+  }
+
+  // Fetch AI tailored settings based on our skeleton
   function fetchSettings() {
     return new Promise((resolve, reject) => {
+      const skeleton = buildSkeleton();
       chrome.runtime.sendMessage(
-        { type: "FETCH", url: API + "/settings", method: "GET" },
+        { 
+          type: "FETCH", 
+          url: API + "/analyze-site", 
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: { html_skeleton: skeleton }
+        },
         (res) => {
           if (chrome.runtime.lastError) return reject(chrome.runtime.lastError.message);
           if (!res || !res.ok) return reject(res ? res.error : "No response");
@@ -24,127 +48,119 @@
     });
   }
 
-  // Build and inject a <style> block from the settings JSON
-  function injectStyles(settings) {
+  // Dynamically inject CSS based on what Groq Llama 3 mapped
+  function injectStyles(payload) {
     removeStyles(); // clean slate
 
-    const s = settings;
-    const c = s.colors;
+    const s = payload.selectors;
+    const f = payload.formatting;
+    const t = f.typography;
+    const c = f.colors;
+    const l = f.layout;
+    const cl = f.clutter;
 
     const css = `
-/* NeuroRead AI — Formatting Override */
+/* NeuroRead AI — AI-Mapped Formatting Override */
 
-/* --- Page background --- */
-body, main, article, section {
+/* --- Page & Container --- */
+body, main, article, section, [role="main"] {
   background-color: ${c.background} !important;
+  ${cl.override_background_image ? 'background-image: none !important;' : ''}
+  font-family: ${t.font_family} !important;
 }
 
-/* --- Paragraph text: bigger, spaced, dark --- */
-.mw-parser-output > p,
-.mw-parser-output > ul > li,
-.mw-parser-output > ol > li,
-.mw-parser-output > blockquote {
-  font-size: ${s.base_font_size} !important;
-  line-height: ${s.line_height} !important;
+/* Constrain column width for readability return sweeps */
+${s.title_selector}, ${s.body_selector}, ${s.header_selectors} {
+  max-width: ${l.content_max_width} !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  ${cl.remove_decorative_shadows ? 'box-shadow: none !important; text-shadow: none !important;' : ''}
+}
+
+/* --- Paragraph text --- */
+${s.body_selector} {
+  font-size: ${t.base_font_size} !important;
+  line-height: ${t.line_height} !important;
   color: ${c.text} !important;
-  margin-bottom: 0.8em !important;
+  text-align: ${t.text_align} !important;
+  letter-spacing: ${t.letter_spacing} !important;
+  word-spacing: ${t.word_spacing} !important;
+  margin-bottom: ${l.paragraph_spacing} !important;
+  max-width: ${t.max_line_width} !important;
 }
 
-/* --- Page title — fixed size, purple --- */
-#firstHeading, .mw-page-title-main {
+/* --- Italics Override --- */
+${t.override_italic ? 'i, em { font-style: normal !important; font-weight: 500 !important; }' : ''}
+
+/* --- Page title --- */
+${s.title_selector} {
   color: ${c.highlight} !important;
   font-size: 42px !important;
   font-weight: 800 !important;
   margin-bottom: 0.5em !important;
 }
 
-/* --- Section headings — purple, proportional --- */
-.mw-heading h2,
-.mw-parser-output > h2 {
+/* --- Section headings --- */
+${s.header_selectors} {
   color: ${c.highlight} !important;
   font-size: 26px !important;
   font-weight: 700 !important;
-  margin-top: 1.2em !important;
-  margin-bottom: 0.5em !important;
-  border-bottom: 2px solid ${c.highlight}33 !important;
-  padding-bottom: 4px !important;
+  margin-top: ${l.heading_margin_top} !important;
+  margin-bottom: 0.8em !important;
 }
 
-.mw-heading h3,
-.mw-parser-output > h3 {
-  color: ${c.highlight} !important;
-  font-size: 22px !important;
-  font-weight: 700 !important;
-  margin-top: 1em !important;
-  margin-bottom: 0.4em !important;
-}
-
-/* --- Links stay blue (not heading links) --- */
-.mw-parser-output a:not(.mw-jump-link) {
-  color: #2563EB !important;
-}
-.mw-parser-output a:visited {
-  color: #5B21B6 !important;
-}
-
-/* Links inside headings stay purple */
-.mw-heading a,
-#firstHeading a {
+/* --- Links stay blue --- */
+a { color: #2563EB !important; }
+a:visited { color: #5B21B6 !important; }
+${s.title_selector} a, ${s.header_selectors} a {
   color: ${c.highlight} !important;
   text-decoration: none !important;
 }
 
-/* --- Bold text = orange accent --- */
-.mw-parser-output b,
-.mw-parser-output strong {
-  color: ${c.accent} !important;
+/* --- Bold text & Emphasis --- */
+b, strong { 
+  color: ${c.accent} !important; 
+  font-weight: 800 !important;
 }
 
-/* --- Math elements: keep inline, no extra spacing --- */
-math, .mwe-math-element, .mwe-math-fallback-image-inline,
-.mwe-math-fallback-image-display {
-  display: inline !important;
-  vertical-align: middle !important;
-  line-height: 1 !important;
-  margin: 0 2px !important;
-  padding: 0 !important;
+/* --- Lists --- */
+ul, ol {
+  padding-left: ${l.list_indent} !important;
 }
-/* Reset the outer span wrapper Wikipedia puts around math */
-.mwe-math-element {
-  display: inline-block !important;
-  margin: 0 1px !important;
+li {
+  margin-bottom: ${l.list_item_spacing} !important;
+  font-size: ${t.base_font_size} !important;
+  line-height: ${t.line_height} !important;
+  color: ${c.text} !important;
 }
 
-/* --- DO NOT touch superscripts, references, small UI --- */
-sup, sub, .reference,
-.mw-editsection, .navbox, .catlinks, .metadata,
-figcaption, .thumbcaption, .legend {
-  font-size: revert !important;
-  color: revert !important;
-}
-
-/* --- Images: enlarge thumbnails --- */
-.mw-parser-output .thumb {
-  width: 350px !important;
-  max-width: 50% !important;
-}
-.mw-parser-output .thumbinner {
-  width: 100% !important;
+/* --- Images --- */
+${s.thumbnail_selector} {
+  display: ${cl.image_display_style} !important;
+  margin-top: 2em !important;
+  margin-bottom: 2em !important;
   max-width: 100% !important;
-}
-.mw-parser-output .thumbimage,
-.mw-parser-output .thumbinner img {
-  width: 100% !important;
   height: auto !important;
 }
-/* Also enlarge inline images not inside .thumb */
-.mw-parser-output img:not(.mw-logo-icon):not([width="1"]):not(.mwe-math-fallback-image-inline):not(.mwe-math-fallback-image-display) {
-  min-width: 150px;
+
+/* --- HARD EXCLUSIONS: Math & Inline Elements --- */
+/* Wikipedia renders math equations as <img>. Prevent them from becoming block elements! */
+math, .mwe-math-element, .mwe-math-fallback-image-inline, .mwe-math-fallback-image-display {
+  display: inline-block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  width: auto !important;
+  max-width: none !important;
+  background-color: transparent !important;
 }
 
-/* --- Table of contents stays clean --- */
-.toc, #toc, .mw-table-of-contents {
-  font-size: 15px !important;
+/* --- GROQ EXCLUSIONS --- */
+${s.exclusions} {
+  font-size: revert !important;
+  color: revert !important;
+  line-height: revert !important;
+  background-color: revert !important;
 }
 `;
 
@@ -153,7 +169,8 @@ figcaption, .thumbcaption, .legend {
     el.textContent = css;
     document.head.appendChild(el);
 
-    console.log("[NeuroRead] Formatting applied.");
+    console.log("[NeuroRead/Groq] Dynamic formatting applied.");
+    console.log("Groq's payload:", payload);
   }
 
   function removeStyles() {
@@ -165,8 +182,8 @@ figcaption, .thumbcaption, .legend {
   window.NR_Formatting = {
     activate: async function () {
       try {
-        const settings = await fetchSettings();
-        injectStyles(settings);
+        const payload = await fetchSettings();
+        injectStyles(payload);
         return { success: true };
       } catch (err) {
         console.error("[NeuroRead] Formatting error:", err);
@@ -178,19 +195,4 @@ figcaption, .thumbcaption, .legend {
       console.log("[NeuroRead] Formatting removed.");
     },
   };
-  // Listen for messages from popup
-  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (msg.type === "PING") {
-      sendResponse({ ready: true });
-      return;
-    }
-    if (msg.type === "ACTIVATE_FORMATTING") {
-      window.NR_Formatting.activate().then(sendResponse);
-      return true; // async
-    }
-    if (msg.type === "DEACTIVATE_FORMATTING") {
-      window.NR_Formatting.deactivate();
-      sendResponse({ success: true });
-    }
-  });
 })();

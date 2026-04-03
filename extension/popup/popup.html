@@ -27,14 +27,18 @@
     }
     #btn-activate { background: #7c3aed; color: #fff; }
     #btn-deactivate { background: #333; color: #aaa; }
+    .btn-focus { background: #ea580c; color: #fff; }
+    .btn-focus-off { background: #333; color: #aaa; }
     #status { margin-top: 10px; font-size: 12px; color: #64748b; text-align: center; }
   </style>
 </head>
 <body>
   <h2>NeuroRead AI</h2>
-  <button class="btn" id="btn-activate">Activate Formatting</button>
-  <button class="btn" id="btn-deactivate">Deactivate</button>
-  <div id="status">Module 1 — Font & Color</div>
+  <button class="btn" id="btn-activate">1. Format Text</button>
+  <button class="btn" id="btn-deactivate">1. Undo Format</button>
+  <button class="btn btn-focus" id="btn-focus">2. Block Ads & Autoplay</button>
+  <button class="btn btn-focus-off" id="btn-focus-off">2. Unblock Ads</button>
+  <div id="status">NeuroRead is Ready.</div>
   <script src="popup.js"></script>
 </body>
 </html>
