@@ -93,19 +93,27 @@
 
   // Public API exposed to popup
   window.NR_FocusBlock = {
-    activate: function () {
+    activate: async function () {
       console.log("[NeuroRead] Activating Focus & Ad Blocker...");
       injectHidingCSS();
       stopAutoplay();
-      enableNetworkBlocking(); // Tell background to activate NetRequest rules
-      return { success: true };
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "TOGGLE_AD_RULES", enable: true }, () => {
+          window.location.reload();
+          resolve({ success: true });
+        });
+      });
     },
-    deactivate: function () {
+    deactivate: async function () {
       console.log("[NeuroRead] Deactivating Focus & Ad Blocker...");
       removeStyles();
       allowAutoplay();
-      disableNetworkBlocking();
-      return { success: true };
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "TOGGLE_AD_RULES", enable: false }, () => {
+          window.location.reload();
+          resolve({ success: true });
+        });
+      });
     },
   };
 
