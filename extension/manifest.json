@@ -23,6 +23,21 @@
       }
     ]
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "features/formatting.js",
+        "features/ai-text.js",
+        "features/speech-out.js",
+        "features/visual-enhancement.js",
+        "features/focus-mode.js",
+        "features/read-ruler.js",
+        "features/toolbar.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
   "background": {
     "service_worker": "background.js"
   },
