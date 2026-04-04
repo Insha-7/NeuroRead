@@ -166,6 +166,30 @@ async def voice_transcribe(audio: UploadFile = File(...)):
         "intent": intent
     }
 
+
+class ImageExplainRequest(BaseModel):
+    image_base64: str
+    context: str = ""
+
+@app.post("/explain-image")
+def explain_image_endpoint(request: ImageExplainRequest):
+    """
+    Module: Multimodal Image/Diagram Explainer
+    Accepts a base64-encoded image and returns a plain-language explanation.
+    """
+    from vision_explainer import explain_image
+    
+    if not request.image_base64:
+        raise HTTPException(status_code=400, detail="No image data provided")
+    
+    explanation = explain_image(request.image_base64, request.context)
+    
+    return {
+        "success": True,
+        "explanation": explanation
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

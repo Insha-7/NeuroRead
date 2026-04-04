@@ -9,7 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     read: document.getElementById("toggle-read"),
     toc: document.getElementById("toggle-toc"),
     ruler: document.getElementById("toggle-ruler"),
-    focusMode: document.getElementById("toggle-focus-mode")
+    focusMode: document.getElementById("toggle-focus-mode"),
+    imageExplainer: document.getElementById("toggle-explain")
   };
 
   const sliders = {
@@ -131,6 +132,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       file: "features/focus-mode.js",
       on: function() { return window.NR_FocusMode.activate(); },
       off: function() { return window.NR_FocusMode.deactivate(); }
+    },
+    imageExplainer: {
+      file: "features/image-explainer.js",
+      on: function() { return window.NR_ImageExplainer.activate(); },
+      off: function() { return window.NR_ImageExplainer.deactivate(); }
     }
   };
 

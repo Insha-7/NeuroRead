@@ -34,6 +34,7 @@
         "features/visual-enhancement.js",
         "features/focus-mode.js",
         "features/read-ruler.js",
+        "features/image-explainer.js",
         "features/toolbar.js"
       ],
       "run_at": "document_idle"

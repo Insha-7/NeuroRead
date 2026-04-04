@@ -25,6 +25,7 @@ MODELS = {
     "focus_mapper":     "qwen/qwen3-32b",      # Simple selector extraction
     "voice_intent":     "openai/gpt-oss-20b",      # Quick command parsing
     "whisper":          "whisper-large-v3-turbo",     # Audio transcription (fixed)
+    "vision_explainer": "meta-llama/llama-4-scout-17b-16e-instruct",  # Multimodal image analysis
 }
 
 # ─── LLM Parameters ──────────────────────────────────────────
