@@ -145,17 +145,28 @@ li:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
 .thumb, figure, .thumbinner, .tmulti {
   width: auto !important;
   max-width: 450px !important;
-  min-width: 300px !important;
+  min-width: 350px !important;
+  box-sizing: border-box !important;
+}
+.tsingle, .thumbimage {
+  max-width: 100% !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+}
+.thumb a.image, figure a.image, .thumbinner a.image, .tmulti a.image, .tsingle a.image {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 .thumb img, figure img, .thumbinner img,
 :is(${s.thumbnail_selector}):not(#nr-toc-container *):not(.mwe-math-fallback-image-inline):not(.mwe-math-fallback-image-display) {
   display: ${cl.image_display_style} !important;
-  margin-top: 1em !important;
-  margin-bottom: 1em !important;
+  margin: 1em 0 !important;
   width: 100% !important;
-  max-width: 450px !important;
-  min-width: 280px !important;
+  max-width: 100% !important;
   height: auto !important;
+  object-fit: contain !important;
+  box-sizing: border-box !important;
 }
 
 /* --- HARD EXCLUSIONS: Math & Inline Elements --- */
