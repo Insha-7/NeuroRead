@@ -22,6 +22,7 @@
         padding: 4px 6px;
         transition: background-color 0.3s ease;
         outline: 2px solid #F59E0B;
+        display: flow-root !important;
       }
     `;
     document.head.appendChild(styleEl);
