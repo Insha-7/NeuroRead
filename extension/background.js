@@ -89,6 +89,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             pitch: 1.0,
             lang: "en-US",
             onEvent: function(event) {
+              if (event.type === 'word') {
+                try {
+                  chrome.tabs.sendMessage(tabId, { 
+                    type: "TTS_WORD_HIGHLIGHT", 
+                    index: i, 
+                    charIndex: event.charIndex, 
+                    length: event.length 
+                  });
+                } catch(e) {}
+              }
               // Any terminal event resolves immediately
               if (event.type === "end" || event.type === "interrupted" ||
                   event.type === "cancelled" || event.type === "error") {

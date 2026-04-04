@@ -14,7 +14,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const sliders = {
     fontSize: { el: document.getElementById("font-size-slider"), val: document.getElementById("font-size-val"), suffix: "px" },
-    lineSpacing: { el: document.getElementById("line-spacing-slider"), val: document.getElementById("line-spacing-val"), suffix: "" }
+    lineSpacing: { el: document.getElementById("line-spacing-slider"), val: document.getElementById("line-spacing-val"), suffix: "" },
+    readSpeed: { el: document.getElementById("read-speed-slider"), val: document.getElementById("read-speed-val"), suffix: "x" }
   };
 
   const profileCards = document.querySelectorAll(".profile-card");
@@ -55,7 +56,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       activeProfile: document.querySelector('.profile-card.active')?.dataset.preset || 'custom',
       typographyOverrides: {
         fontSize: sliders.fontSize.el.value,
-        lineSpacing: sliders.lineSpacing.el.value
+        lineSpacing: sliders.lineSpacing.el.value,
+        readSpeed: sliders.readSpeed.el.value
       }
     };
     await chrome.storage.local.set({ nrState: state });
@@ -75,6 +77,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (res.nrState.typographyOverrides.lineSpacing) {
           sliders.lineSpacing.el.value = res.nrState.typographyOverrides.lineSpacing;
           sliders.lineSpacing.val.textContent = sliders.lineSpacing.el.value + sliders.lineSpacing.suffix;
+        }
+        if (res.nrState.typographyOverrides.readSpeed) {
+          sliders.readSpeed.el.value = res.nrState.typographyOverrides.readSpeed;
+          sliders.readSpeed.val.textContent = sliders.readSpeed.el.value + sliders.readSpeed.suffix;
         }
       }
       setProfileActive(res.nrState.activeProfile || 'custom');
