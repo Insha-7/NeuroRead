@@ -7,7 +7,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     focus: document.getElementById("toggle-focus"),
     simplify: document.getElementById("toggle-simplify"),
     read: document.getElementById("toggle-read"),
-    toc: document.getElementById("toggle-toc")
+    toc: document.getElementById("toggle-toc"),
+    ruler: document.getElementById("toggle-ruler")
   };
 
   const profileCards = document.querySelectorAll(".profile-card");
@@ -43,6 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       simplify: toggles.simplify.checked,
       read: toggles.read.checked,
       toc: toggles.toc.checked,
+      ruler: toggles.ruler.checked,
       activeProfile: document.querySelector('.profile-card.active')?.dataset.preset || 'custom'
     };
     await chrome.storage.local.set({ nrState: state });
@@ -92,6 +94,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       file: "features/visual-enhancement.js",
       on: function() { return window.NR_Visual.activate(); },
       off: function() { return window.NR_Visual.deactivate(); }
+    },
+    ruler: {
+      file: "features/read-ruler.js",
+      on: function() { return window.NR_ReadRuler.activate(); },
+      off: function() { return window.NR_ReadRuler.deactivate(); }
     }
   };
 
@@ -124,9 +131,9 @@ document.addEventListener("DOMContentLoaded", async () => {
    * USER PROFILES (PRESETS)
    * --------------------------------- */
   const presets = {
-    adhd: { formatting: true, focus: true, simplify: false, read: false, toc: true },
-    dyslexia: { formatting: true, focus: false, simplify: true, read: true, toc: false },
-    autism: { formatting: true, focus: true, simplify: true, read: false, toc: false }
+    adhd: { formatting: true, focus: true, simplify: false, read: false, toc: true, ruler: true },
+    dyslexia: { formatting: true, focus: false, simplify: true, read: true, toc: false, ruler: true },
+    autism: { formatting: true, focus: true, simplify: true, read: false, toc: false, ruler: false }
   };
 
   profileCards.forEach(card => {
@@ -167,6 +174,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["features/ai-text.js"] });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["features/speech-out.js"] });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["features/visual-enhancement.js"] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["features/read-ruler.js"] });
     
     const res = await executeFeature(tabId, "features/speech-in.js", function() { return window.NR_SpeechIn.activate(); });
     
