@@ -99,6 +99,24 @@ def analyze_site(request: SkeletonRequest):
         }
     }
 
+@app.post("/analyze-focus")
+def analyze_focus(request: SkeletonRequest):
+    """
+    Module 8: AI True Focus Mode
+    Uses Llama 3 to aggressively identify sidebars, navs, and distracting containers to hide.
+    """
+    from focus_mapper import generate_focus_map
+    
+    ai_response = generate_focus_map(request.html_skeleton)
+    
+    return {
+        "success": True,
+        "selectors": {
+            "main_content_selector": ai_response.get("main_content_selector", "article, main"),
+            "hide_selectors": ai_response.get("hide_selectors", "nav, footer, aside")
+        }
+    }
+
 class SimplifyRequest(BaseModel):
     text_chunks: List[str]
 
