@@ -32,9 +32,9 @@
     return new Promise((resolve, reject) => {
       const skeleton = buildSkeleton();
       chrome.runtime.sendMessage(
-        { 
-          type: "FETCH", 
-          url: API + "/analyze-site", 
+        {
+          type: "FETCH",
+          url: API + "/analyze-site",
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: { html_skeleton: skeleton }
@@ -124,10 +124,10 @@ b, strong {
 }
 
 /* --- Lists --- */
-ul, ol {
+ul:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *), ol:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
   padding-left: ${l.list_indent} !important;
 }
-li {
+li:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
   margin-bottom: ${l.list_item_spacing} !important;
   font-size: ${t.base_font_size} !important;
   line-height: ${t.line_height} !important;

@@ -31,22 +31,22 @@
   function findTextNodes() {
     // Target main article areas, fallback to body
     const container = document.querySelector('article, main, .content, .mw-parser-output') || document.body;
-    
+
     // We target common block elements that contain reading text
     const candidates = Array.from(container.querySelectorAll('p, li, blockquote, dd'));
-    
+
     // Filter by length and visibility
     return candidates.filter(el => {
       const text = el.innerText.trim();
-      return text.length >= MIN_LENGTH && 
-             el.offsetParent !== null && 
-             !el.closest('nav, footer, aside, .nav, .menu');
+      return text.length >= MIN_LENGTH &&
+        el.offsetParent !== null &&
+        !el.closest('nav, footer, aside, .nav, .menu');
     });
   }
 
   async function processBatch(nodes) {
     const textChunks = nodes.map(n => n.innerText.trim());
-    
+
     // Mark as loading
     nodes.forEach(n => n.classList.add('nr-simplifying'));
 
@@ -67,7 +67,7 @@
           }
 
           const simplifiedChunks = res.data.simplified_chunks;
-          
+
           nodes.forEach((node, i) => {
             node.classList.remove('nr-simplifying');
             if (simplifiedChunks[i]) {
@@ -75,24 +75,24 @@
               if (!node.dataset.nrOriginal) {
                 node.dataset.nrOriginal = node.innerHTML;
               }
-              
+
               // Replace content. Note: Using innerHTML here because the AI 
               // might return markdown bullets (-) which we can convert 
               // or just wrap in a div. For simplicity, we'll convert 
               // the simplified text to basic HTML if it contains bullets.
               let text = simplifiedChunks[i];
               if (text.includes('- ')) {
-                 text = text.split('\n').map(line => {
-                   if (line.trim().startsWith('- ')) {
-                     return `<li>${line.trim().substring(2)}</li>`;
-                   }
-                   return line;
-                 }).join('\n');
-                 if (text.includes('<li>')) {
-                   text = `<ul>${text}</ul>`;
-                 }
+                text = text.split('\n').map(line => {
+                  if (line.trim().startsWith('- ')) {
+                    return `<li>${line.trim().substring(2)}</li>`;
+                  }
+                  return line;
+                }).join('\n');
+                if (text.includes('<li>')) {
+                  text = `<ul>${text}</ul>`;
+                }
               }
-              
+
               node.innerHTML = text;
               node.classList.add('nr-simplified');
             }
@@ -111,7 +111,7 @@
       }
 
       console.log(`[NeuroRead/AI] Found ${nodes.length} nodes to simplify.`);
-      
+
       // Process in batches
       for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
         const batch = nodes.slice(i, i + BATCH_SIZE);
