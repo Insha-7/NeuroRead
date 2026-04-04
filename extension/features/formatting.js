@@ -141,12 +141,20 @@ li:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
   color: ${c.text} !important;
 }
 
-/* --- Images --- */
-:is(${s.thumbnail_selector}):not(#nr-toc-container *) {
+/* --- Images & Image Containers --- */
+.thumb, figure, .thumbinner, .tmulti {
+  width: auto !important;
+  max-width: 450px !important;
+  min-width: 300px !important;
+}
+.thumb img, figure img, .thumbinner img,
+:is(${s.thumbnail_selector}):not(#nr-toc-container *):not(.mwe-math-fallback-image-inline):not(.mwe-math-fallback-image-display) {
   display: ${cl.image_display_style} !important;
-  margin-top: 2em !important;
-  margin-bottom: 2em !important;
-  max-width: 100% !important;
+  margin-top: 1em !important;
+  margin-bottom: 1em !important;
+  width: 100% !important;
+  max-width: 450px !important;
+  min-width: 280px !important;
   height: auto !important;
 }
 

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+from config import get_llm, invoke_with_retry
 
 load_dotenv()
 
@@ -168,28 +169,20 @@ NO markdown code fences. NO preamble. NO explanation. Just the JSON object.
 parser = JsonOutputParser(pydantic_object=SiteSelectors)
 
 def generate_css_map(html_skeleton: str) -> dict:
-    """Takes a raw HTML skeleton and uses Groq Llama 3 70B to return safe CSS selectors."""
-    
-    # Initialize the Groq model
-    llm = ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY"),
-        model="llama-3.3-70b-versatile",
-        temperature=0.1,  # Keep it deterministic
-    )
-    
+    """Takes a raw HTML skeleton and uses Groq Llama 3 to return safe CSS selectors."""
+    llm = get_llm("dom_mapper")
     chain = prompt_template | llm | parser
     
-    try:
-        # Ask Groq to parse it
-        response = chain.invoke({"skeleton": html_skeleton})
+    response = invoke_with_retry(chain, {"skeleton": html_skeleton}, "dom_mapper")
+    
+    if response:
         return response
-    except Exception as e:
-        print(f"[DOM Mapper] Groq Error: {e}")
-        # Fallback to safe standard selectors if AI fails
-        return {
-            "title_selector": "h1",
-            "body_selector": "p",
-            "header_selectors": "h2, h3, h4",
-            "exclusions": "sup, sub, nav, footer, style, script, SVG, math",
-            "thumbnail_selector": "img"
-        }
+        
+    print("[DOM Mapper] Error or Rate Limit Exceeded. Using hardcoded fallback.")
+    return {
+        "title_selector": "h1",
+        "body_selector": "p",
+        "header_selectors": "h2, h3, h4",
+        "exclusions": "sup, sub, nav, footer, style, script, SVG, math",
+        "thumbnail_selector": "img"
+    }

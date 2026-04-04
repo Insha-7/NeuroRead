@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+from config import get_llm, invoke_with_retry
 
 load_dotenv()
 
@@ -40,21 +41,16 @@ Return ONLY valid JSON matching this schema:
 parser = JsonOutputParser(pydantic_object=FocusSelectors)
 
 def generate_focus_map(html_skeleton: str) -> dict:
-    llm = ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY"),
-        model="llama-3.3-70b-versatile",
-        temperature=0.1,
-    )
-    
+    llm = get_llm("focus_mapper")
     chain = prompt_template | llm | parser
     
-    try:
-        response = chain.invoke({"skeleton": html_skeleton})
+    response = invoke_with_retry(chain, {"skeleton": html_skeleton}, "focus_mapper")
+    
+    if response:
         return response
-    except Exception as e:
-        print(f"[Focus Mapper] Groq Error: {e}")
-        # Fallback dictionary
-        return {
-            "main_content_selector": "article, main, .mw-parser-output, [role='main']",
+
+    print("[Focus Mapper] Error or Rate Limit Exceeded. Using hardcoded fallback.")
+    return {
+        "main_content_selector": "article, main, .mw-parser-output, [role='main']",
             "hide_selectors": "nav, footer, aside, .sidebar, .menu, #vector-toc, .vector-toc-container, .mw-panel, [class*='cookie'], [class*='ad-']"
         }

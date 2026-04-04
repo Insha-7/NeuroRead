@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+from config import get_llm, invoke_with_retry
 
 load_dotenv()
 
@@ -44,19 +45,15 @@ def simplify_text_chunks(chunks: List[str]) -> List[str]:
     if not chunks:
         return []
         
-    llm = ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY", ""),
-        model="llama-3.3-70b-versatile",
-        temperature=0.1,
-    )
-    
+    llm = get_llm("text_simplifier")
     chain = prompt_template | llm | parser
     
     # Format the input to make it clearly distinct for the LLM
     formatted_chunks = "\n---\n".join([f"CHUNK {i}:\n{chunk}" for i, chunk in enumerate(chunks)])
     
-    try:
-        response = chain.invoke({"chunks": formatted_chunks})
+    response = invoke_with_retry(chain, {"chunks": formatted_chunks}, "text_simplifier")
+    
+    if response:
         simplified = response.get("simplified_chunks", [])
         
         # Handle cases where LLM returns fewer chunks or more
@@ -73,7 +70,5 @@ def simplify_text_chunks(chunks: List[str]) -> List[str]:
             print("[Text Simplifier] Warning: 'simplified_chunks' is not a list")
             return chunks
             
-    except Exception as e:
-        print(f"[Text Simplifier] Groq Error: {e}")
-        # Fallback to original text on error
-        return chunks
+    print("[Text Simplifier] Error or Rate Limit Exceeded.")
+    return chunks

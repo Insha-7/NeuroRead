@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+from config import get_llm, invoke_with_retry
 
 load_dotenv()
 
@@ -76,20 +77,17 @@ def parse_intent(transcription: str) -> dict:
     # Strip trailing punctuation that might confuse the prompt intent matching
     transcription = re.sub(r'[^\w\s]$', '', transcription.strip())
 
-    llm = ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY"),
-        model="llama-3.3-70b-versatile",
-        temperature=0.1,
-    )
+    llm = get_llm("voice_intent")
     
     chain = prompt_template | llm | parser
     
-    try:
-        response = chain.invoke({"transcription": transcription})
+    response = invoke_with_retry(chain, {"transcription": transcription}, "voice_intent")
+    
+    if response:
         return response
-    except Exception as e:
-        print(f"[Voice Intent] Groq Error: {e}")
-        return {
-            "action_type": "speak",
-            "speak_message": "Sorry, I couldn't process that command right now."
-        }
+        
+    print("[Voice Intent] Error or Rate Limit Exceeded.")
+    return {
+        "action_type": "speak",
+        "speak_message": "Sorry, I couldn't process that command right now."
+    }
