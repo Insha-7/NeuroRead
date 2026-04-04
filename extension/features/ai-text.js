@@ -81,15 +81,35 @@
               // or just wrap in a div. For simplicity, we'll convert 
               // the simplified text to basic HTML if it contains bullets.
               let text = simplifiedChunks[i];
-              if (text.includes('- ')) {
-                text = text.split('\n').map(line => {
-                  if (line.trim().startsWith('- ')) {
-                    return `<li>${line.trim().substring(2)}</li>`;
-                  }
-                  return line;
-                }).join('\n');
-                if (text.includes('<li>')) {
-                  text = `<ul>${text}</ul>`;
+              
+              let lines = text.split('\n');
+              let htmlLines = [];
+              let hasBullets = false;
+              
+              for (let line of lines) {
+                let trimmed = line.trim();
+                // Match standard markdown bullets or literal bullet points
+                let match = trimmed.match(/^[\-\*\•]\s+(.*)/);
+                if (match) {
+                  hasBullets = true;
+                  htmlLines.push(`<li>${match[1]}</li>`);
+                } else if (trimmed.length > 0) {
+                  htmlLines.push(trimmed);
+                }
+              }
+
+              if (hasBullets) {
+                if (node.tagName.toLowerCase() === 'li') {
+                  // Don't inject nested lists inside existing list items, 
+                  // and avoid duplicate bullet characters!
+                  text = htmlLines.map(l => {
+                    const m = l.match(/^<li>(.*)<\/li>$/);
+                    return m ? m[1] : l;
+                  }).join('<br><br>');
+                } else {
+                  // Wrap everything inside a UL, protecting non-li elements in paragraphs
+                  let body = htmlLines.map(l => l.startsWith('<li>') ? l : `<p>${l}</p>`).join('');
+                  text = `<ul>${body}</ul>`;
                 }
               }
 

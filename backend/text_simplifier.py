@@ -23,6 +23,7 @@ RULES FOR SIMPLIFICATION:
 4. ONE IDEA PER SENTENCE: Split every sentence that contains 'and', 'but', or 'which' into two short sentences.
 5. NO FILLER: Start directly with the simplified content.
 6. TARGET AUDIENCE: Write as if you are explaining this to a 10-year-old with short attention span.
+7. FORMAT AS BULLETS: Return the simplified text as a concise markdown bulleted list (e.g. using '-' or '*') instead of dense paragraphs.
 
 INPUT CHUNKS:
 {chunks}

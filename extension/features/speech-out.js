@@ -34,11 +34,16 @@
    */
   function getReadableElements() {
     const container = document.querySelector('article, main, .content, .mw-parser-output') || document.body;
-    return Array.from(container.querySelectorAll('p, li, blockquote, dd'))
+    const candidates = Array.from(container.querySelectorAll('p, li, blockquote, dd'))
       .filter(el => {
         const text = el.innerText.trim();
         return text.length > 30 && el.offsetParent !== null && !el.closest('nav, footer, aside, .nav, .menu');
       });
+
+    // Remove elements that are children of other candidate elements to prevent double-reading
+    return candidates.filter(el => {
+      return !candidates.some(parent => parent !== el && parent.contains(el));
+    });
   }
 
   /**
