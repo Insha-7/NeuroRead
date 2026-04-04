@@ -10,6 +10,23 @@
     <h1>NeuroRead AI</h1>
   </header>
 
+  <div id="cam-section" class="cam-container" style="display: none;">
+    <div class="cam-header">
+      <span class="cam-title">CAM Score</span>
+      <span class="cam-rating" id="cam-rating-badge">...</span>
+    </div>
+    <div class="cam-body">
+      <div class="cam-gauge-wrapper">
+        <div class="cam-gauge" id="cam-gauge-circle">
+          <span class="cam-score-val" id="cam-score-val">--</span>
+        </div>
+      </div>
+      <ul class="cam-insights" id="cam-insights-list">
+        <li>Analyzing cognitive load...</li>
+      </ul>
+    </div>
+  </div>
+
   <div class="section-title">Quick Profiles</div>
   <div class="profiles-grid">
     <div class="profile-card" data-preset="adhd">

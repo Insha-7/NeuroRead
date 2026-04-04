@@ -190,6 +190,27 @@ def explain_image_endpoint(request: ImageExplainRequest):
     }
 
 
+class CamRequest(BaseModel):
+    text_content: str
+
+@app.post("/cam-score")
+def cam_score_endpoint(request: CamRequest):
+    """
+    Module 5: Cognitive Accessibility Metric (CAM)
+    Evaluates page content and returns a score out of 100 with insights.
+    """
+    from cam_analyzer import analyze_cam_score
+    
+    if not request.text_content:
+        return {"success": False, "error": "No text provided"}
+        
+    result = analyze_cam_score(request.text_content)
+    
+    return {
+        "success": True,
+        "cam": result
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

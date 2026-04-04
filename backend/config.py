@@ -26,6 +26,7 @@ MODELS = {
     "voice_intent":     "openai/gpt-oss-20b",      # Quick command parsing
     "whisper":          "whisper-large-v3-turbo",     # Audio transcription (fixed)
     "vision_explainer": "meta-llama/llama-4-scout-17b-16e-instruct",  # Multimodal image analysis
+    "cam_analyzer":     "llama-3.1-8b-instant",       # Fast numerical/text evaluation
 }
 
 # ─── LLM Parameters ──────────────────────────────────────────

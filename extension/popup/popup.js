@@ -1,3 +1,5 @@
+let baseCamData = null;
+
 document.addEventListener("DOMContentLoaded", async () => {
   const status = document.getElementById("status");
   const btnVoice = document.getElementById("btn-voice");
@@ -161,6 +163,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggles[key].addEventListener('change', async (e) => {
       setProfileActive('custom'); // Manual toggle switches to custom mode
       await toggleFeature(key, e.target.checked);
+      applyCamModifiers(); // Instantly update score display
       await saveState();
     });
   });
@@ -201,6 +204,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             await toggleFeature(key, shouldBeOn);
           }
         }
+        applyCamModifiers(); // Update score after profile applied
         status.textContent = `${presetName.toUpperCase()} Profile Active`;
       }
       await saveState();
@@ -235,6 +239,123 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (res && res.error) status.textContent = `❌ ${res.error}`;
   });
 
+  // --- CAM Score Logic ---
+  async function initCamScore(tabId) {
+    const camSection = document.getElementById("cam-section");
+    camSection.style.display = "block";
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabUrl = tab.url;
+
+    // Check cache
+    const cacheKey = "camCache_" + tabUrl;
+    const cacheRes = await chrome.storage.local.get(cacheKey);
+    if (cacheRes[cacheKey]) {
+      baseCamData = cacheRes[cacheKey];
+      applyCamModifiers();
+      return;
+    }
+
+    // Extract text from page
+    const textRes = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const container = document.querySelector('article, main, .content, .mw-parser-output') || document.body;
+        return container.innerText.substring(0, 5000);
+      }
+    });
+
+    if (!textRes || !textRes[0].result) {
+      renderCamScore({ score: -1, rating: "Error", insights: ["Could not extract page text."] });
+      return;
+    }
+
+    // Call backend
+    chrome.runtime.sendMessage({
+      type: "FETCH",
+      url: "http://localhost:8000/cam-score",
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: { text_content: textRes[0].result }
+    }, (res) => {
+      if (res && res.ok && res.data && res.data.success) {
+        baseCamData = res.data.cam;
+        applyCamModifiers();
+        // Cache result
+        chrome.storage.local.set({ [cacheKey]: baseCamData });
+      } else {
+        renderCamScore({ score: -1, rating: "API Error", insights: ["Backend unreachable."] });
+      }
+    });
+  }
+
+  function applyCamModifiers() {
+    if (!baseCamData || baseCamData.score === -1) return;
+    
+    // Deep copy to avoid mutating cache
+    let currentData = JSON.parse(JSON.stringify(baseCamData));
+    let bonus = 0;
+    
+    if (toggles.formatting.checked) {
+      bonus += 15;
+      currentData.insights.unshift("Typography formats applied (+15)");
+    }
+    if (toggles.simplify.checked) {
+      bonus += 25;
+      currentData.insights.unshift("Text simplified (+25)");
+    }
+    if (toggles.focus.checked || toggles.focusMode.checked) {
+      bonus += 10;
+      currentData.insights.unshift("Distractions blocked (+10)");
+    }
+    
+    currentData.score = Math.min(100, currentData.score + bonus);
+    
+    // Re-evaluate rating
+    if (currentData.score >= 80) currentData.rating = "Excellent";
+    else if (currentData.score >= 50) currentData.rating = "Good";
+    else currentData.rating = "Needs Adjustments";
+    
+    // Keep only top 2 insights
+    currentData.insights = currentData.insights.slice(0, 2);
+    
+    renderCamScore(currentData);
+  }
+
+  function renderCamScore(data) {
+    document.getElementById("cam-score-val").textContent = data.score >= 0 ? data.score : "--";
+    document.getElementById("cam-rating-badge").textContent = data.rating;
+    
+    const insightsList = document.getElementById("cam-insights-list");
+    insightsList.innerHTML = "";
+    (data.insights || []).forEach(insight => {
+      const li = document.createElement("li");
+      li.textContent = insight;
+      insightsList.appendChild(li);
+    });
+
+    const gauge = document.getElementById("cam-gauge-circle");
+    if (data.score >= 0) {
+      let color = "#EF4444"; // Red for < 50
+      if (data.score >= 80) color = "#10B981";      // Green
+      else if (data.score >= 50) color = "#F59E0B"; // Yellow
+
+      document.getElementById("cam-rating-badge").style.color = color;
+      
+      // Animate the conic gradient
+      setTimeout(() => {
+        gauge.style.background = `conic-gradient(${color} ${data.score}%, transparent ${data.score}%)`;
+      }, 50);
+    } else {
+      gauge.style.background = `conic-gradient(var(--text-muted) 0%, transparent 0%)`;
+      document.getElementById("cam-rating-badge").style.color = "var(--text-main)";
+    }
+  }
+
   // Init
+  const activeTabId = await getTabId();
+  if (activeTabId) {
+    initCamScore(activeTabId);
+  }
   await loadState();
 });
