@@ -49,7 +49,7 @@
   }
 
   // Dynamically inject CSS based on what Groq Llama 3 mapped
-  function injectStyles(payload) {
+  function injectStyles(payload, overrides = {}) {
     removeStyles(); // clean slate
 
     const s = payload.selectors;
@@ -59,8 +59,16 @@
     const l = f.layout;
     const cl = f.clutter;
 
+    const fontSize = overrides.fontSize ? overrides.fontSize + 'px' : t.base_font_size;
+    const lineHeight = overrides.lineSpacing ? overrides.lineSpacing : t.line_height;
+
     const css = `
 /* NeuroRead AI — AI-Mapped Formatting Override */
+
+:root {
+  --nr-font-size: ${fontSize};
+  --nr-line-height: ${lineHeight};
+}
 
 /* --- Page & Container --- */
 body {
@@ -86,8 +94,8 @@ article,
 
 /* --- Paragraph text --- */
 :is(${s.body_selector}):not(#nr-toc-container *) {
-  font-size: ${t.base_font_size} !important;
-  line-height: ${t.line_height} !important;
+  font-size: var(--nr-font-size) !important;
+  line-height: var(--nr-line-height) !important;
   color: ${c.text} !important;
   text-align: ${t.text_align} !important;
   letter-spacing: ${t.letter_spacing} !important;
@@ -136,8 +144,8 @@ ul:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *), ol:not(#nr-to
 }
 li:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
   margin-bottom: ${l.list_item_spacing} !important;
-  font-size: ${t.base_font_size} !important;
-  line-height: ${t.line_height} !important;
+  font-size: var(--nr-font-size) !important;
+  line-height: var(--nr-line-height) !important;
   color: ${c.text} !important;
 }
 
@@ -259,8 +267,15 @@ footer *,
     activate: async function () {
       try {
         const payload = await fetchSettings();
-        injectStyles(payload);
-        return { success: true };
+        
+        // Load custom overrides from storage if any
+        return new Promise((resolve) => {
+           chrome.storage.local.get("nrState", (res) => {
+             const overrides = res.nrState?.typographyOverrides || {};
+             injectStyles(payload, overrides);
+             resolve({ success: true });
+           });
+        });
       } catch (err) {
         console.error("[NeuroRead] Formatting error:", err);
         return { success: false, error: String(err) };
@@ -271,4 +286,19 @@ footer *,
       console.log("[NeuroRead] Formatting removed.");
     },
   };
+
+  // Real-time listener for typography changes from the popup
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.nrState && window.__NR_FORMATTING_LOADED && document.getElementById(STYLE_ID)) {
+      const state = changes.nrState.newValue || {};
+      if (state.typographyOverrides) {
+         if (state.typographyOverrides.fontSize) {
+            document.documentElement.style.setProperty('--nr-font-size', state.typographyOverrides.fontSize + 'px');
+         }
+         if (state.typographyOverrides.lineSpacing) {
+            document.documentElement.style.setProperty('--nr-line-height', state.typographyOverrides.lineSpacing);
+         }
+      }
+    }
+  });
 })();

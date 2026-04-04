@@ -12,6 +12,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     focusMode: document.getElementById("toggle-focus-mode")
   };
 
+  const sliders = {
+    fontSize: { el: document.getElementById("font-size-slider"), val: document.getElementById("font-size-val"), suffix: "px" },
+    lineSpacing: { el: document.getElementById("line-spacing-slider"), val: document.getElementById("line-spacing-val"), suffix: "" }
+  };
+
   const profileCards = document.querySelectorAll(".profile-card");
 
   async function getTabId() {
@@ -47,7 +52,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       toc: toggles.toc.checked,
       ruler: toggles.ruler.checked,
       focusMode: toggles.focusMode.checked,
-      activeProfile: document.querySelector('.profile-card.active')?.dataset.preset || 'custom'
+      activeProfile: document.querySelector('.profile-card.active')?.dataset.preset || 'custom',
+      typographyOverrides: {
+        fontSize: sliders.fontSize.el.value,
+        lineSpacing: sliders.lineSpacing.el.value
+      }
     };
     await chrome.storage.local.set({ nrState: state });
   }
@@ -58,6 +67,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       Object.keys(toggles).forEach(k => {
         if (res.nrState[k] !== undefined) toggles[k].checked = res.nrState[k];
       });
+      if (res.nrState.typographyOverrides) {
+        if (res.nrState.typographyOverrides.fontSize) {
+          sliders.fontSize.el.value = res.nrState.typographyOverrides.fontSize;
+          sliders.fontSize.val.textContent = sliders.fontSize.el.value + sliders.fontSize.suffix;
+        }
+        if (res.nrState.typographyOverrides.lineSpacing) {
+          sliders.lineSpacing.el.value = res.nrState.typographyOverrides.lineSpacing;
+          sliders.lineSpacing.val.textContent = sliders.lineSpacing.el.value + sliders.lineSpacing.suffix;
+        }
+      }
       setProfileActive(res.nrState.activeProfile || 'custom');
     }
   }
@@ -130,6 +149,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggles[key].addEventListener('change', async (e) => {
       setProfileActive('custom'); // Manual toggle switches to custom mode
       await toggleFeature(key, e.target.checked);
+      await saveState();
+    });
+  });
+
+  // Attach Slider Listeners
+  Object.keys(sliders).forEach(key => {
+    const s = sliders[key];
+    s.el.addEventListener('input', async (e) => {
+      s.val.textContent = e.target.value + s.suffix;
+      setProfileActive('custom');
       await saveState();
     });
   });
