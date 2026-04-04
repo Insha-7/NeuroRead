@@ -211,6 +211,27 @@ def cam_score_endpoint(request: CamRequest):
         "cam": result
     }
 
+class ToneRequest(BaseModel):
+    text_content: str
+
+@app.post("/analyze-tone")
+def analyze_tone_endpoint(request: ToneRequest):
+    """
+    Module 7: Content Tone & Emotion Analysis
+    Evaluates text and provides a breakdown of tone, emotion, and implicit meaning.
+    """
+    from tone_analyzer import analyze_tone
+    
+    if not request.text_content:
+        raise HTTPException(status_code=400, detail="No text data provided")
+        
+    result = analyze_tone(request.text_content)
+    
+    return {
+        "success": True,
+        "analysis": result
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

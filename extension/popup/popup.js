@@ -12,7 +12,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     toc: document.getElementById("toggle-toc"),
     ruler: document.getElementById("toggle-ruler"),
     focusMode: document.getElementById("toggle-focus-mode"),
-    imageExplainer: document.getElementById("toggle-explain")
+    imageExplainer: document.getElementById("toggle-explain"),
+    tone: document.getElementById("toggle-tone")
   };
 
   const sliders = {
@@ -139,6 +140,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       file: "features/image-explainer.js",
       on: function() { return window.NR_ImageExplainer.activate(); },
       off: function() { return window.NR_ImageExplainer.deactivate(); }
+    },
+    tone: {
+      file: "features/tone-analyzer.js",
+      on: function() { return window.NR_ToneAnalyzer.activate(); },
+      off: function() { return window.NR_ToneAnalyzer.deactivate(); }
     }
   };
 

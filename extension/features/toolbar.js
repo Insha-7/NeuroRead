@@ -174,7 +174,8 @@
     const secondaryTools = [
       { id: 'tb-toc', icon: '📑', label: 'Outline', key: 'toc', object: 'NR_Visual' },
       { id: 'tb-ruler', icon: '📏', label: 'Ruler', key: 'ruler', object: 'NR_ReadRuler' },
-      { id: 'tb-img-exp', icon: '🔍', label: 'Analyze', key: 'imageExplainer', object: 'NR_ImageExplainer', pending: false }
+      { id: 'tb-img-exp', icon: '🔍', label: 'Analyze', key: 'imageExplainer', object: 'NR_ImageExplainer', pending: false },
+      { id: 'tb-tone', icon: '🎭', label: 'Tone', key: 'tone', object: 'NR_ToneAnalyzer' }
     ];
 
     function createButton(t) {

@@ -477,19 +477,56 @@
 
   loadSpeed();
 
-  // --- "Read from here" context button ---
+  // --- Universal Selection Menu ---
 
   function ensureContextBtn() {
-    if (!contextBtn) {
-      contextBtn = document.createElement('button');
-      contextBtn.id = 'nr-read-from-here';
-      contextBtn.textContent = '▶ Read from here';
-      document.body.appendChild(contextBtn);
+    let menu = document.getElementById('nr-selection-menu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'nr-selection-menu';
+      document.head.insertAdjacentHTML('beforeend', `<style>
+        #nr-selection-menu {
+          position: absolute;
+          z-index: 2147483647;
+          display: none;
+          gap: 6px;
+          background: #1E293B;
+          padding: 4px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        #nr-selection-menu button {
+          background: transparent;
+          border: none;
+          color: #E2E8F0;
+          font-family: inherit;
+          font-size: 13px;
+          padding: 6px 10px;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        #nr-selection-menu button:hover {
+          background: rgba(255,255,255,0.1);
+        }
+      </style>`);
+      document.body.appendChild(menu);
+    }
 
-      contextBtn.addEventListener('click', (e) => {
+    if (!document.getElementById('nr-read-btn')) {
+      const readBtn = document.createElement('button');
+      readBtn.id = 'nr-read-btn';
+      readBtn.textContent = '▶ Read';
+      menu.appendChild(readBtn);
+
+      readBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        contextBtn.style.display = 'none';
+        menu.style.display = 'none';
 
         const sel = window.getSelection();
         if (!sel.anchorNode) return;
@@ -559,20 +596,23 @@
 
       if (text.length > 2) {
         ensureContextBtn();
+        const menu = document.getElementById('nr-selection-menu');
         const range = sel.getRangeAt(0);
         const rect = range.getBoundingClientRect();
-        contextBtn.style.top = (rect.top + window.scrollY - 36) + 'px';
-        contextBtn.style.left = (rect.left + window.scrollX) + 'px';
-        contextBtn.style.display = 'block';
-      } else if (contextBtn) {
-        contextBtn.style.display = 'none';
+        menu.style.display = 'flex';
+        menu.style.top = (rect.top + window.scrollY - menu.offsetHeight - 8) + 'px';
+        menu.style.left = (rect.left + window.scrollX) + 'px';
+      } else {
+        const menu = document.getElementById('nr-selection-menu');
+        if (menu) menu.style.display = 'none';
       }
     }, 10);
   });
 
   document.addEventListener('mousedown', (e) => {
-    if (contextBtn && e.target !== contextBtn) {
-      contextBtn.style.display = 'none';
+    const menu = document.getElementById('nr-selection-menu');
+    if (menu && !menu.contains(e.target)) {
+      menu.style.display = 'none';
     }
   });
 

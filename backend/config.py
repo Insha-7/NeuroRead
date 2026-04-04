@@ -27,6 +27,7 @@ MODELS = {
     "whisper":          "whisper-large-v3-turbo",     # Audio transcription (fixed)
     "vision_explainer": "meta-llama/llama-4-scout-17b-16e-instruct",  # Multimodal image analysis
     "cam_analyzer":     "llama-3.1-8b-instant",       # Fast numerical/text evaluation
+    "tone_analyzer":    "llama-3.1-8b-instant",       # Explicit social/emotional parsing
 }
 
 # ─── LLM Parameters ──────────────────────────────────────────
