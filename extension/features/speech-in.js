@@ -49,6 +49,15 @@
         stream.getTracks().forEach(t => t.stop());
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         isRecording = false;
+        const micBtn = document.getElementById("tb-mic");
+        if (micBtn) {
+           micBtn.classList.remove("nr-recording", "nr-active");
+           chrome.storage.local.get("nrState", (res) => {
+             let state = res.nrState || {};
+             state['mic'] = false;
+             chrome.storage.local.set({ nrState: state });
+           });
+        }
 
         // Send to backend for transcription and intent parsing
         const responseData = await sendToBackend(audioBlob);
@@ -113,6 +122,9 @@
         }
       }, 5000);
 
+      const micBtn = document.getElementById("tb-mic");
+      if (micBtn) micBtn.classList.add("nr-recording", "nr-active");
+
       return { success: true, message: "Recording active." };
     } catch (err) {
       console.error("[NeuroRead/Voice] Mic error:", err);
@@ -166,6 +178,15 @@
         mediaRecorder.stop();
       }
       isRecording = false;
+      const micBtn = document.getElementById("tb-mic");
+      if (micBtn) {
+         micBtn.classList.remove("nr-recording", "nr-active");
+         chrome.storage.local.get("nrState", (res) => {
+             let state = res.nrState || {};
+             state['mic'] = false;
+             chrome.storage.local.set({ nrState: state });
+         });
+      }
     }
   };
 })();

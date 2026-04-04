@@ -95,6 +95,17 @@
         opacity: 1;
       }
       
+      .nr-tb-btn.nr-recording {
+        background: rgba(220, 38, 38, 0.2) !important;
+        color: #F87171 !important;
+        animation: nr-tb-pulse 1.5s infinite;
+      }
+      @keyframes nr-tb-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+      }
+      
       .nr-tb-expand-btn {
         opacity: 0.8;
         border-radius: 50% !important;
@@ -155,6 +166,7 @@
     const primaryTools = [
       { id: 'tb-format', icon: '✨', label: 'Format', key: 'formatting', object: 'NR_Formatting' },
       { id: 'tb-simplify', icon: '🧠', label: 'Simplify', key: 'simplify', object: 'NR_AiText' },
+      { id: 'tb-mic', icon: '🎙️', label: 'Voice', key: 'mic', object: 'NR_SpeechIn' },
       { id: 'tb-read', icon: '🔊', label: 'Listen', key: 'read', object: 'NR_SpeechOut' },
       { id: 'tb-focus', icon: '🎯', label: 'Focus', key: 'focusMode', object: 'NR_FocusMode' }
     ];
