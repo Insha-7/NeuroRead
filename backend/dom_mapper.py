@@ -35,11 +35,11 @@ class SiteSelectors(BaseModel):
     override_background_image: bool = Field(description="Set to true to force background-image: none.")
     
     # GROUP C: Spacing & Layout
-    paragraph_spacing: str = Field(description="Large margin-bottom on paragraphs (1.8em-2.5em).")
-    heading_margin_top: str = Field(description="Generous margin-top before headings (2.5em-3em).")
+    paragraph_spacing: str = Field(description="Moderate margin-bottom on paragraphs (0.8em-1.2em).")
+    heading_margin_top: str = Field(description="Moderate margin-top before headings (1.2em-1.8em).")
     content_max_width: str = Field(description="Constrained central column width (740px-820px).")
     list_indent: str = Field(description="Minimal list indentation (16px-20px).")
-    list_item_spacing: str = Field(description="Generous spacing between list items (0.6em-0.9em).")
+    list_item_spacing: str = Field(description="Comfortable spacing between list items (0.3em-0.5em).")
     
     # GROUP D: Visual Clutter
     image_display_style: str = Field(description="'block' display for images with generous top/bottom margins.")
@@ -118,7 +118,7 @@ GROUP C: SPACING & LAYOUT — Structural Calm
 ────────────────────────────────────
 
 PAIN C1 — Tiny paragraph spacing makes text feel like one continuous mass. ADHD readers need visual "breathing gaps" between ideas to signal mental chunking.
-→ FIX: Set 'paragraph_spacing' very large (1.8em–2.5em of margin-bottom on <p>). Each paragraph should feel like its own visual island.
+→ FIX: Set 'paragraph_spacing' moderate (0.8em–1.2em of margin-bottom on <p>). Paragraphs should breathe but not create huge empty gaps.
 
 PAIN C2 — Tight heading-to-content spacing makes section breaks invisible. The ADHD brain needs an unmistakable visual signal that a new idea is beginning.
 → FIX: Set 'heading_margin_top' generously (2.5em–3em). This creates a clear "section break" cue before each heading.

@@ -1,6 +1,6 @@
 // NeuroRead AI — speech-in.js
 // Module 4: Voice Command Input
-// Records audio from the mic, sends to Groq Whisper, and executes matched commands.
+// Records audio from the mic, sends to Groq via backend, and executes AI-mapped intents.
 
 (function () {
   "use strict";
@@ -12,33 +12,22 @@
   let audioChunks = [];
   let isRecording = false;
 
-  // Supported voice commands
-  const COMMANDS = {
-    "simplify": () => { if (window.NR_AiText) window.NR_AiText.activate(); },
-    "format": () => { if (window.NR_Formatting) window.NR_Formatting.activate(); },
-    "read": () => { if (window.NR_SpeechOut) window.NR_SpeechOut.activate(); },
-    "stop": () => { if (window.NR_SpeechOut) window.NR_SpeechOut.deactivate(); },
-    "scroll down": () => { window.scrollBy({ top: 500, behavior: 'smooth' }); },
-    "scroll up": () => { window.scrollBy({ top: -500, behavior: 'smooth' }); },
-    "go to top": () => { window.scrollTo({ top: 0, behavior: 'smooth' }); },
-    "undo": () => {
-      if (window.NR_AiText) window.NR_AiText.deactivate();
-      if (window.NR_Formatting) window.NR_Formatting.deactivate();
+  const NATIVE_FEATURES = {
+    "formatting": () => { window.NR_Formatting && window.NR_Formatting.activate(); },
+    "simplify": () => { window.NR_AiText && window.NR_AiText.activate(); },
+    "read": () => { window.NR_SpeechOut && window.NR_SpeechOut.activate(); },
+    "stop": () => { window.NR_SpeechOut && window.NR_SpeechOut.deactivate(); },
+    "focus": () => { window.NR_FocusMode && window.NR_FocusMode.activate(); },
+    "ruler": () => { window.NR_ReadRuler && window.NR_ReadRuler.activate(); },
+    "toc": () => { window.NR_Visual && window.NR_Visual.activate(); },
+    "undo": () => { 
+      window.NR_Formatting && window.NR_Formatting.deactivate();
+      window.NR_AiText && window.NR_AiText.deactivate();
+      window.NR_FocusMode && window.NR_FocusMode.deactivate();
+      window.NR_ReadRuler && window.NR_ReadRuler.deactivate();
+      window.NR_Visual && window.NR_Visual.deactivate();
     }
   };
-
-  /**
-   * Match transcription to a known command (fuzzy).
-   */
-  function matchCommand(text) {
-    const lower = text.toLowerCase().trim();
-    for (const [key, fn] of Object.entries(COMMANDS)) {
-      if (lower.includes(key)) {
-        return { command: key, execute: fn };
-      }
-    }
-    return null;
-  }
 
   /**
    * Start recording from the microphone.
@@ -49,7 +38,6 @@
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunks = [];
-
       mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
       mediaRecorder.ondataavailable = (e) => {
@@ -59,40 +47,86 @@
       mediaRecorder.onstop = async () => {
         // Stop all tracks to release mic
         stream.getTracks().forEach(t => t.stop());
-
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         isRecording = false;
 
-        // Send to backend for transcription
-        const transcription = await sendToBackend(audioBlob);
-        if (transcription) {
-          console.log("%c🎤 NeuroRead Voice Heard: " + transcription, "background: #DC2626; color: white; font-size: 16px; padding: 6px 12px; border-radius: 4px;");
-          const match = matchCommand(transcription);
-          if (match) {
-            console.log("%c✅ Executing command: " + match.command, "background: #059669; color: white; font-size: 14px; padding: 4px 8px; border-radius: 4px;");
-            match.execute();
+        // Send to backend for transcription and intent parsing
+        const responseData = await sendToBackend(audioBlob);
+        
+        if (responseData && responseData.intent) {
+          const trans = responseData.transcription;
+          const intent = responseData.intent;
+          
+          console.log(`%c🎤 Heard: "${trans}"`, "background: #DC2626; color: white; padding: 6px 12px; border-radius: 4px;");
+          console.log(`%c🤖 AI Intent: ${intent.action_type}`, "background: #059669; color: white; padding: 4px 8px; border-radius: 4px;", intent);
+
+          if (intent.action_type === 'feature' && intent.feature_name) {
+            if (NATIVE_FEATURES[intent.feature_name]) {
+               NATIVE_FEATURES[intent.feature_name]();
+            } else {
+               speak("I'm sorry, I don't recognize that specific extension feature.");
+            }
+          } 
+          else if (intent.action_type === 'dom_manipulation' && intent.dom_action) {
+             try {
+               // Execute the AI-generated DOM action securely via structured JSON API
+               const action = intent.dom_action;
+               let targetNode = window; // Default to window
+               
+               if (action.selector) {
+                   targetNode = document.querySelector(action.selector);
+               }
+
+               if (targetNode && typeof targetNode[action.method] === 'function') {
+                   if (action.args !== null && typeof action.args === 'object' && Object.keys(action.args).length > 0) {
+                       targetNode[action.method](action.args);
+                   } else {
+                       targetNode[action.method]();
+                   }
+               } else {
+                   throw new Error(`Method ${action.method} not found on target`);
+               }
+             } catch (e) {
+               console.error("[NeuroRead/Voice] Error executing DOM manipulation:", e);
+               speak("I had trouble executing that command on this web page.");
+             }
+          } 
+
+          else if (intent.action_type === 'speak' && intent.speak_message) {
+             speak(intent.speak_message);
           } else {
-            console.log("%c❌ No matching command for: " + transcription, "background: #D97706; color: white; font-size: 14px; padding: 4px 8px; border-radius: 4px;");
+             speak("I didn't quite catch what to do.");
           }
         } else {
-          console.log("%c🎤 NeuroRead: Could not transcribe audio", "background: #333; color: #aaa; font-size: 14px; padding: 4px 8px;");
+          console.log("%c🎤 NeuroRead: Could not transcribe or map audio.", "background: #333; color: #aaa; padding: 4px 8px;");
+          speak("I didn't hear anything.");
         }
       };
 
       mediaRecorder.start();
       isRecording = true;
 
-      // Auto-stop after 5 seconds
+      // Auto-stop after 5 seconds to prevent runaway recording
       setTimeout(() => {
         if (mediaRecorder && mediaRecorder.state === "recording") {
           mediaRecorder.stop();
         }
       }, 5000);
 
-      return { success: true, message: "Recording for 5 seconds..." };
+      return { success: true, message: "Recording active." };
     } catch (err) {
       console.error("[NeuroRead/Voice] Mic error:", err);
       return { success: false, error: "Microphone access denied" };
+    }
+  }
+
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.lang = 'en-US';
+      msg.pitch = 1.1;
+      msg.rate = 1.0;
+      window.speechSynthesis.speak(msg);
     }
   }
 
@@ -101,11 +135,9 @@
    */
   function sendToBackend(audioBlob) {
     return new Promise((resolve) => {
-      // Convert blob to base64 to send via message passing
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result.split(',')[1];
-
         chrome.runtime.sendMessage(
           {
             type: "FETCH_AUDIO",
@@ -115,11 +147,11 @@
           },
           (res) => {
             if (chrome.runtime.lastError || !res || !res.ok) {
-              console.error("[NeuroRead/Voice] Transcription failed:", chrome.runtime.lastError || res?.error);
+              console.error("[NeuroRead/Voice] Fetch failed:", chrome.runtime.lastError || res?.error);
               resolve(null);
-              return;
+            } else {
+              resolve(res.data);
             }
-            resolve(res.data.transcription || "");
           }
         );
       };
@@ -127,11 +159,8 @@
     });
   }
 
-  // Public API
   window.NR_SpeechIn = {
-    activate: function () {
-      return startRecording();
-    },
+    activate: startRecording,
     deactivate: function () {
       if (mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.stop();

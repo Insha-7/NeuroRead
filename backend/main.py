@@ -84,11 +84,11 @@ def analyze_site(request: SkeletonRequest):
                 "accent": ai_response.get("accent_color", "#D97706")
             },
             "layout": {
-                "paragraph_spacing": ai_response.get("paragraph_spacing", "2em"),
-                "heading_margin_top": ai_response.get("heading_margin_top", "2.8em"),
+                "paragraph_spacing": ai_response.get("paragraph_spacing", "1em"),
+                "heading_margin_top": ai_response.get("heading_margin_top", "1.5em"),
                 "content_max_width": ai_response.get("content_max_width", "780px"),
                 "list_indent": ai_response.get("list_indent", "20px"),
-                "list_item_spacing": ai_response.get("list_item_spacing", "0.8em")
+                "list_item_spacing": ai_response.get("list_item_spacing", "0.5em")
             },
             "clutter": {
                 "override_background_image": ai_response.get("override_background_image", True),
@@ -154,9 +154,16 @@ async def voice_transcribe(audio: UploadFile = File(...)):
     
     transcription = transcribe_audio(audio_bytes, filename=audio.filename or "recording.webm")
     
+    if not transcription:
+        return {"success": False, "error": "No audible transcription"}
+
+    from voice_intent import parse_intent
+    intent = parse_intent(transcription)
+    
     return {
         "success": True,
-        "transcription": transcription
+        "transcription": transcription,
+        "intent": intent
     }
 
 if __name__ == "__main__":

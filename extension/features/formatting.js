@@ -63,14 +63,21 @@
 /* NeuroRead AI — AI-Mapped Formatting Override */
 
 /* --- Page & Container --- */
-body, main, article, section, [role="main"] {
+body {
+  background-color: ${c.background} !important;
+  ${cl.override_background_image ? 'background-image: none !important;' : ''}
+}
+main:not(.vector-column-start):not(nav), 
+article, 
+.mw-body-content,
+[role="main"] {
   background-color: ${c.background} !important;
   ${cl.override_background_image ? 'background-image: none !important;' : ''}
   font-family: ${t.font_family} !important;
 }
 
 /* Constrain column width for readability return sweeps */
-${s.title_selector}, ${s.body_selector}, ${s.header_selectors} {
+:is(${s.title_selector}, ${s.body_selector}, ${s.header_selectors}):not(#nr-toc-container *) {
   max-width: ${l.content_max_width} !important;
   margin-left: auto !important;
   margin-right: auto !important;
@@ -78,7 +85,7 @@ ${s.title_selector}, ${s.body_selector}, ${s.header_selectors} {
 }
 
 /* --- Paragraph text --- */
-${s.body_selector} {
+:is(${s.body_selector}):not(#nr-toc-container *) {
   font-size: ${t.base_font_size} !important;
   line-height: ${t.line_height} !important;
   color: ${c.text} !important;
@@ -90,10 +97,10 @@ ${s.body_selector} {
 }
 
 /* --- Italics Override --- */
-${t.override_italic ? 'i, em { font-style: normal !important; font-weight: 500 !important; }' : ''}
+${t.override_italic ? 'i:not(#nr-toc-container i), em:not(#nr-toc-container em) { font-style: normal !important; font-weight: 500 !important; }' : ''}
 
 /* --- Page title --- */
-${s.title_selector} {
+:is(${s.title_selector}):not(#nr-toc-container *) {
   color: ${c.highlight} !important;
   font-size: 42px !important;
   font-weight: 800 !important;
@@ -101,7 +108,7 @@ ${s.title_selector} {
 }
 
 /* --- Section headings --- */
-${s.header_selectors} {
+:is(${s.header_selectors}):not(#nr-toc-container *) {
   color: ${c.highlight} !important;
   font-size: 26px !important;
   font-weight: 700 !important;
@@ -109,21 +116,21 @@ ${s.header_selectors} {
   margin-bottom: 0.8em !important;
 }
 
-/* --- Links stay blue --- */
-a { color: #2563EB !important; }
-a:visited { color: #5B21B6 !important; }
-${s.title_selector} a, ${s.header_selectors} a {
+/* --- Links (exclude TOC) --- */
+a:not(#nr-toc-container a):not(#nr-toc-list a) { color: #2563EB !important; }
+a:visited:not(#nr-toc-container a):not(#nr-toc-list a) { color: #5B21B6 !important; }
+:is(${s.title_selector}) a, :is(${s.header_selectors}) a {
   color: ${c.highlight} !important;
   text-decoration: none !important;
 }
 
-/* --- Bold text & Emphasis --- */
-b, strong { 
+/* --- Bold text & Emphasis (exclude TOC) --- */
+b:not(#nr-toc-container b), strong:not(#nr-toc-container strong) { 
   color: ${c.accent} !important; 
   font-weight: 800 !important;
 }
 
-/* --- Lists --- */
+/* --- Lists (exclude TOC & native sidebars) --- */
 ul:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *), ol:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
   padding-left: ${l.list_indent} !important;
 }
@@ -135,7 +142,7 @@ li:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
 }
 
 /* --- Images --- */
-${s.thumbnail_selector} {
+:is(${s.thumbnail_selector}):not(#nr-toc-container *) {
   display: ${cl.image_display_style} !important;
   margin-top: 2em !important;
   margin-bottom: 2em !important;
@@ -144,7 +151,6 @@ ${s.thumbnail_selector} {
 }
 
 /* --- HARD EXCLUSIONS: Math & Inline Elements --- */
-/* Wikipedia renders math equations as <img>. Prevent them from becoming block elements! */
 math, .mwe-math-element, .mwe-math-fallback-image-inline, .mwe-math-fallback-image-display {
   display: inline-block !important;
   margin: 0 !important;
@@ -161,6 +167,57 @@ ${s.exclusions} {
   color: revert !important;
   line-height: revert !important;
   background-color: revert !important;
+}
+
+/* --- PROTECT Wikipedia Native Sidebar & UI (containers) --- */
+.vector-column-start,
+#vector-toc-pinned-container,
+.vector-toc,
+#toc, .toc,
+.vector-toc-landmark,
+#mw-panel-toc,
+.sidebar,
+.vector-pinnable-element,
+.vector-settings,
+#mw-panel,
+.mw-sidebar,
+.vector-page-toolbar,
+footer,
+#mw-head,
+.mw-header {
+  background-color: #ffffff !important;
+}
+
+/* --- PROTECT Wikipedia Native Sidebar & UI (all elements) --- */
+.vector-column-start *,
+#vector-toc-pinned-container *,
+.vector-toc *,
+#toc *, .toc *,
+.vector-toc-landmark *,
+#mw-panel-toc *,
+.sidebar *,
+.vector-pinnable-element *,
+.vector-settings *,
+#mw-panel *,
+.mw-sidebar *,
+nav, nav *,
+.vector-page-toolbar *,
+#p-lang-btn,
+.mw-portlet, .mw-portlet *,
+footer *,
+#mw-head *,
+.mw-header * {
+  font-size: revert !important;
+  color: revert !important;
+  line-height: revert !important;
+  font-family: revert !important;
+  letter-spacing: revert !important;
+  word-spacing: revert !important;
+  text-align: revert !important;
+  margin-bottom: revert !important;
+  max-width: revert !important;
+  font-style: revert !important;
+  font-weight: revert !important;
 }
 `;
 
