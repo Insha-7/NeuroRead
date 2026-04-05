@@ -9,6 +9,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   // Proxy HTTP requests so content scripts on HTTPS pages can reach localhost
   if (msg.type === "FETCH") {
+    console.log(`[NR-BG] FETCH proxy: ${msg.method} ${msg.url}`);
+    const bgStart = Date.now();
     const opts = {
       method: msg.method || "GET",
       headers: msg.headers || {}
@@ -19,11 +21,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     fetch(msg.url, opts)
       .then(res => {
+        console.log(`[NR-BG] Backend responded: ${res.status} in ${((Date.now() - bgStart)/1000).toFixed(1)}s`);
         if (!res.ok) throw new Error("Backend " + res.status);
         return res.json();
       })
-      .then(data => sendResponse({ ok: true, data }))
-      .catch(err => sendResponse({ ok: false, error: err.message }));
+      .then(data => {
+        console.log(`[NR-BG] Sending data back to content script`);
+        sendResponse({ ok: true, data });
+      })
+      .catch(err => {
+        console.error(`[NR-BG] FETCH error: ${err.message}`);
+        sendResponse({ ok: false, error: err.message });
+      });
 
     return true; // keep channel open for async response
   }

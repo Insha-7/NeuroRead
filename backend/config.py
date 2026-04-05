@@ -23,6 +23,7 @@ MODELS = {
     "dom_mapper":       "moonshotai/kimi-k2-instruct-0905",   # Needs deep CSS understanding
     "text_simplifier":  "llama-3.1-8b-instant",      # Fast, good enough for ELI5
     "focus_mapper":     "qwen/qwen3-32b",      # Simple selector extraction
+    "focus_reader":     "llama-3.1-8b-instant", # Fast ~3s responses; 5K char chunks stay under 6K TPM
     "voice_intent":     "openai/gpt-oss-20b",      # Quick command parsing
     "whisper":          "whisper-large-v3-turbo",     # Audio transcription (fixed)
     "vision_explainer": "meta-llama/llama-4-scout-17b-16e-instruct",  # Multimodal image analysis
@@ -40,7 +41,7 @@ TEMPERATURES = {
 
 # ─── Rate Limit / Retry Config ────────────────────────────────
 MAX_RETRIES = 3
-RETRY_DELAY_SECONDS = 30  # Base delay, doubles on each retry (exponential backoff)
+RETRY_DELAY_SECONDS = 10  # Base delay, doubles on each retry (exponential backoff)
 
 
 def get_llm(task: str) -> ChatGroq:
@@ -51,6 +52,7 @@ def get_llm(task: str) -> ChatGroq:
         api_key=GROQ_API_KEY,
         model=MODELS.get(task, "llama-3.1-8b-instant"),
         temperature=TEMPERATURES.get(task, 0.1),
+        timeout=30,  # 30 second hard timeout — never hang forever
     )
 
 

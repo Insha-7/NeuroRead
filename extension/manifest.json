@@ -36,7 +36,8 @@
         "features/read-ruler.js",
         "features/image-explainer.js",
         "features/tone-analyzer.js",
-        "features/toolbar.js"
+        "features/toolbar.js",
+        "features/reader-mode.js"
       ],
       "run_at": "document_idle"
     }

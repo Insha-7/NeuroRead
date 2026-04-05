@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     toc: document.getElementById("toggle-toc"),
     ruler: document.getElementById("toggle-ruler"),
     focusMode: document.getElementById("toggle-focus-mode"),
+    reader: document.getElementById("toggle-reader"),
     imageExplainer: document.getElementById("toggle-explain"),
     tone: document.getElementById("toggle-tone")
   };
@@ -57,6 +58,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       toc: toggles.toc.checked,
       ruler: toggles.ruler.checked,
       focusMode: toggles.focusMode.checked,
+      reader: toggles.reader.checked,
       activeProfile: document.querySelector('.profile-card.active')?.dataset.preset || 'custom',
       typographyOverrides: {
         fontSize: sliders.fontSize.el.value,
@@ -135,6 +137,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       file: "features/focus-mode.js",
       on: function() { return window.NR_FocusMode.activate(); },
       off: function() { return window.NR_FocusMode.deactivate(); }
+    },
+    reader: {
+      file: "features/reader-mode.js",
+      on: function() { return window.NR_ReaderMode.activate(); },
+      off: function() { return window.NR_ReaderMode.deactivate(); }
     },
     imageExplainer: {
       file: "features/image-explainer.js",

@@ -139,6 +139,41 @@ def simplify_text(request: SimplifyRequest):
         "simplified_chunks": simplified
     }
 
+from typing import List, Optional, Dict
+
+class ReaderRequest(BaseModel):
+    raw_text: Optional[str] = None
+    feed_items: Optional[List[Dict[str, str]]] = None
+    is_feed: bool = False
+
+@app.post("/focus-reader")
+def focus_reader_endpoint(request: ReaderRequest):
+    """
+    Module 9: Focus Reader Mode
+    Accepts raw scraped webpage text and returns a cleaned, structured, point-by-point JSON representation.
+    """
+    import time as _t
+    from focus_reader import extract_reader_content
+    
+    print(f"[focus-reader] === REQUEST RECEIVED === raw_text={len(request.raw_text or '')} chars, feed_items={len(request.feed_items or [])}, is_feed={request.is_feed}")
+    
+    if not request.raw_text and not request.feed_items:
+        print("[focus-reader] REJECTED: no content provided")
+        return {"success": False, "error": "No content provided"}
+    
+    start = _t.time()
+    result = extract_reader_content(request.raw_text, request.feed_items, request.is_feed)
+    elapsed = _t.time() - start
+    
+    sections_count = len(result.get("sections", []))
+    feed_count = len(result.get("feed", []))
+    print(f"[focus-reader] === DONE in {elapsed:.1f}s === sections={sections_count}, feed={feed_count}")
+    
+    return {
+        "success": True,
+        "data": result
+    }
+
 
 @app.post("/voice")
 async def voice_transcribe(audio: UploadFile = File(...)):
