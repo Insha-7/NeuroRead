@@ -15,19 +15,20 @@ load_dotenv()
 # ─── API Key ─────────────────────────────────────────────────
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
-# ─── Model Assignments ───────────────────────────────────────
-# Spread tasks across different models to distribute rate limits.
-# Heavy tasks (DOM mapping, text simplification) use the big model.
-# Lighter tasks (voice intent, focus mode) use smaller/faster models.
-MODELS = {
-    "dom_mapper":       "moonshotai/kimi-k2-instruct-0905",   # Needs deep CSS understanding
-    "text_simplifier":  "llama-3.1-8b-instant",      # Fast, good enough for ELI5
-    "focus_mapper":     "qwen/qwen3-32b",      # Simple selector extraction
-    "voice_intent":     "openai/gpt-oss-20b",      # Quick command parsing
-    "whisper":          "whisper-large-v3-turbo",     # Audio transcription (fixed)
-    "vision_explainer": "meta-llama/llama-4-scout-17b-16e-instruct",  # Multimodal image analysis
-    "cam_analyzer":     "llama-3.1-8b-instant",       # Fast numerical/text evaluation
-    "tone_analyzer":    "llama-3.1-8b-instant",       # Explicit social/emotional parsing
+from model_pool import model_pool_manager
+
+# ─── Pool Assignments ───────────────────────────────────────
+# Assign tasks to their required fallback pools instead of rigid distinct models
+POOL_ASSIGNMENTS = {
+    "dom_mapper":       "text_pool",
+    "text_simplifier":  "text_pool",
+    "focus_mapper":     "text_pool",
+    "focus_reader":     "text_pool",
+    "voice_intent":     "text_pool",
+    "whisper":          "audio_pool",
+    "vision_explainer": "vision_pool",
+    "cam_analyzer":     "text_pool",
+    "tone_analyzer":    "text_pool",
 }
 
 # ─── LLM Parameters ──────────────────────────────────────────
@@ -45,11 +46,20 @@ RETRY_DELAY_SECONDS = 10  # Base delay, doubles on each retry (exponential backo
 
 def get_llm(task: str) -> ChatGroq:
     """
-    Returns a ChatGroq LLM instance configured for the given task.
+    Returns a ChatGroq LLM instance using the Model Pool rotation.
+    If the top model in the pool is rate-limited, it automatically fails over to the next!
     """
+    pool_name = POOL_ASSIGNMENTS.get(task, "text_pool")
+    selected_model = model_pool_manager.get_available_model(pool_name)
+    
+    if not selected_model:
+        raise Exception(f"All models in '{pool_name}' are currently Rate-Limited! Server cannot process {task}.")
+    
+    print(f"[{task}] 🎯 Grabbed available model from {pool_name}: {selected_model}")
+    
     return ChatGroq(
         api_key=GROQ_API_KEY,
-        model=MODELS.get(task, "llama-3.1-8b-instant"),
+        model=selected_model,
         temperature=TEMPERATURES.get(task, 0.1),
         timeout=30,  # 30 second hard timeout — never hang forever
     )

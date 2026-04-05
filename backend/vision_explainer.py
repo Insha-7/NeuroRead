@@ -4,7 +4,8 @@ Module: Multimodal Image/Diagram Explainer
 Uses Groq Llama 3.2 11B Vision to explain images in plain language.
 """
 
-from config import get_groq_client, MODELS
+from config import get_groq_client
+from model_pool import model_pool_manager
 
 SYSTEM_PROMPT = """You are an accessibility assistant for neurodivergent users (ADHD, Dyslexia, Autism).
 Describe this image in simple, plain language. Focus on:
@@ -29,7 +30,10 @@ def explain_image(image_base64: str, context: str = "") -> str:
         Plain-language explanation string
     """
     client = get_groq_client()
-    model = MODELS.get("vision_explainer", "meta-llama/llama-4-scout-17b-16e-instruct")
+    model = model_pool_manager.get_available_model("vision_pool")
+    
+    if not model:
+        return "Could not analyze this image. The Vision server is currently busy."
     
     # Ensure proper data URL format
     if not image_base64.startswith("data:"):
