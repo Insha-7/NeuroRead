@@ -21,8 +21,8 @@ graph TD
     Groq[Groq AI Cloud]
 
     User -->|Interacts| ChromeExt
-    ChromeExt -->|POST /analyze| FastAPI
-    FastAPI <-->|Lookup/Store| Redis
+    ChromeExt -->|POST analyze| FastAPI
+    FastAPI ---|Lookup/Store| Redis
     FastAPI -->|Multimodal Chain| Groq
     Groq -->|Llama 3.1 / Vision / Whisper| FastAPI
     FastAPI -->|JSON Accessibility Map| ChromeExt
@@ -99,7 +99,7 @@ graph TD
 graph LR
     S[Text Highlight] --> T[Tone Analyzer Service]
     T --> L[Llama 3.1 70B]
-    L -->|Subtext: "This is Sarcasm"| B[Floating Context Tooltip]
+    L -->|Subtext: Sarcasm| B[Floating Context Tooltip]
 ```
 
 ### 5. Voice Intent Routing (Speech-In)
@@ -111,10 +111,10 @@ sequenceDiagram
     participant R as FastAPI: Intent Router
     participant E as Extension Command
 
-    User->>Mic: "Focus Mode"
+    User->>Mic: Focus Mode
     Mic->>W: Send raw audio
-    W-->>R: Transcription: "Focus Mode"
-    R->>R: Map to "focus" feature
+    W-->>R: Transcription: Focus Mode
+    R->>R: Map to focus feature
     R-->>E: Toggle Focus Mode feature
 ```
 
