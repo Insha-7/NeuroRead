@@ -2,10 +2,9 @@ import os
 from typing import List
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from config import get_llm, invoke_with_retry
+from app.core.config import invoke_with_retry
 
 load_dotenv()
 
@@ -45,14 +44,16 @@ def simplify_text_chunks(chunks: List[str]) -> List[str]:
     """Takes a list of text strings and uses Groq Llama 3 70B to simplify them for ADHD."""
     if not chunks:
         return []
-        
-    llm = get_llm("text_simplifier")
-    chain = prompt_template | llm | parser
     
     # Format the input to make it clearly distinct for the LLM
     formatted_chunks = "\n---\n".join([f"CHUNK {i}:\n{chunk}" for i, chunk in enumerate(chunks)])
     
-    response = invoke_with_retry(chain, {"chunks": formatted_chunks}, "text_simplifier")
+    response = invoke_with_retry(
+        input_data={"chunks": formatted_chunks},
+        task_name="text_simplifier",
+        prompt=prompt_template,
+        parser=parser
+    )
     
     if response:
         simplified = response.get("simplified_chunks", [])

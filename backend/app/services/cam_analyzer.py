@@ -8,7 +8,7 @@ from typing import Dict, Any
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
-from config import get_llm, invoke_with_retry
+from app.core.config import invoke_with_retry
 
 class CAMResponse(BaseModel):
     score: int = Field(description="Integer from 0 to 100 where 100 is perfectly accessible and easy to read, and 0 is extremely dense and complex.")
@@ -19,7 +19,6 @@ def analyze_cam_score(text_content: str) -> Dict[str, Any]:
     """
     Evaluates the text content and returns a CAM score out of 100.
     """
-    llm = get_llm("cam_analyzer")
     parser = JsonOutputParser(pydantic_object=CAMResponse)
     
     prompt = ChatPromptTemplate.from_messages([
@@ -35,8 +34,6 @@ Provide your analysis in strictly valid JSON matching the required schema. Ensur
         ("user", "Text to evaluate:\n{text}\n\n{format_instructions}")
     ])
     
-    chain = prompt | llm | parser
-    
     # Cap text length to avoid giant payloads
     safe_text = text_content[:5000]
     if len(safe_text) < 50:
@@ -47,9 +44,10 @@ Provide your analysis in strictly valid JSON matching the required schema. Ensur
         }
         
     result = invoke_with_retry(
-        chain, 
-        {"text": safe_text, "format_instructions": parser.get_format_instructions()},
-        task_name="cam_analyzer"
+        input_data={"text": safe_text, "format_instructions": parser.get_format_instructions()},
+        task_name="cam_analyzer",
+        prompt=prompt,
+        parser=parser
     )
     
     if result:

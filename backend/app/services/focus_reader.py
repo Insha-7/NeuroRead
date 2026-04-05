@@ -3,7 +3,7 @@ import json
 from pydantic import BaseModel, Field
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from config import get_llm, invoke_with_retry
+from app.core.config import invoke_with_retry
 
 # --- ARTICLE MODE SCHEMA ---
 class SectionResponse(BaseModel):
@@ -86,32 +86,39 @@ def strip_think_tags(text):
 
 strip_think = RunnableLambda(strip_think_tags)
 
-def extract_article(raw_text: str, llm):
+def extract_article(raw_text: str):
     if not raw_text or len(raw_text.strip()) < 50:
         return {"title": "Not enough content", "sections": []}
-        
-    chain = article_prompt | llm | strip_think | article_parser
+    
     # Keep chunks small to avoid TPM rate limits (target ~1500 tokens)
     truncated_text = raw_text[:5000]
-    res = invoke_with_retry(chain, {"raw_text": truncated_text}, "focus_reader")
+    res = invoke_with_retry(
+        input_data={"raw_text": truncated_text},
+        task_name="focus_reader",
+        prompt=article_prompt,
+        parser=article_parser
+    )
     return res if res else {"title": "Not enough content", "sections": []}
 
-def extract_feed(feed_items: List[Dict[str, str]], llm):
+def extract_feed(feed_items: List[Dict[str, str]]):
     if not feed_items or len(feed_items) == 0:
         return {"feed": []}
         
     # Restrict to 8 items to save tokens
     candidates = feed_items[:8]
-    chain = feed_prompt | llm | strip_think | feed_parser
     feed_json_str = json.dumps(candidates)
-    res = invoke_with_retry(chain, {"feed_json": feed_json_str}, "focus_reader")
+    res = invoke_with_retry(
+        input_data={"feed_json": feed_json_str},
+        task_name="focus_reader",
+        prompt=feed_prompt,
+        parser=feed_parser
+    )
     return res if res else {"feed": []}
 
 def extract_reader_content(raw_text: Optional[str] = None, feed_items: Optional[List[Dict[str, str]]] = None, is_feed: bool = False):
     """Distills messy webpage text or feed cards into structured content.
     Runs article first, then feed, sequentially to avoid TPM collisions."""
     import time as _t
-    llm = get_llm("focus_reader")
     print(f"[focus-reader] extract_reader_content called: raw_text={len(raw_text or '')} chars, feed_items={len(feed_items or [])}, is_feed={is_feed}")
     
     result = {"title": "Focus Reader", "sections": [], "feed": []}
@@ -120,7 +127,7 @@ def extract_reader_content(raw_text: Optional[str] = None, feed_items: Optional[
     if raw_text and len(raw_text.strip()) > 300:
         print(f"[focus-reader] Starting ARTICLE extraction ({len(raw_text)} chars)...")
         t0 = _t.time()
-        a_res = extract_article(raw_text, llm)
+        a_res = extract_article(raw_text)
         print(f"[focus-reader] ARTICLE extraction done in {_t.time()-t0:.1f}s -> sections={len(a_res.get('sections',[]))}")
         if a_res and a_res.get("sections") and len(a_res.get("sections", [])) > 0:
             result["title"] = a_res.get("title", "Article Summary")
@@ -132,7 +139,7 @@ def extract_reader_content(raw_text: Optional[str] = None, feed_items: Optional[
     if feed_items and len(feed_items) >= 4:
         print(f"[focus-reader] Starting FEED extraction ({len(feed_items)} items)...")
         t0 = _t.time()
-        f_res = extract_feed(feed_items, llm)
+        f_res = extract_feed(feed_items)
         print(f"[focus-reader] FEED extraction done in {_t.time()-t0:.1f}s -> feed={len(f_res.get('feed',[]))}")
         if f_res and f_res.get("feed"):
             result["feed"] = f_res.get("feed", [])

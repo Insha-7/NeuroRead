@@ -1,10 +1,9 @@
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from config import get_llm, invoke_with_retry
+from app.core.config import invoke_with_retry
 
 load_dotenv()
 
@@ -24,9 +23,10 @@ Given the HTML skeleton below, you must identify:
 
 REQUIREMENTS:
 - For `hide_selectors`, aggressively select: `<nav>`, `<footer>`, `<aside>`, `.sidebar`, `#vector-toc`, cookie banners, social bars, ad slots, and site headers.
-- If you see classes like `mw-panel`, `vector-toc-container`, `menu`, or `nav`, include them in `hide_selectors`.
+- If you see classes like `mw-panel`, `vector-toc-container`, `vector-pinnable-header`, `menu`, or `nav`, include them in `hide_selectors`.
 - DO NOT hide the main content container or its direct ancestors.
 - DO NOT hide elements inside the main content container. 
+- CRITICAL: NEVER include the main body containers in `hide_selectors`! For example, on Wikipedia, NEVER hide `.mw-body`, `.mw-body-header`, `.mw-parser-output`, or `.mw-first-heading`.
 
 HTML SKELETON:
 {skeleton}
@@ -41,10 +41,12 @@ Return ONLY valid JSON matching this schema:
 parser = JsonOutputParser(pydantic_object=FocusSelectors)
 
 def generate_focus_map(html_skeleton: str) -> dict:
-    llm = get_llm("focus_mapper")
-    chain = prompt_template | llm | parser
-    
-    response = invoke_with_retry(chain, {"skeleton": html_skeleton}, "focus_mapper")
+    response = invoke_with_retry(
+        input_data={"skeleton": html_skeleton},
+        task_name="focus_mapper",
+        prompt=prompt_template,
+        parser=parser
+    )
     
     if response:
         return response

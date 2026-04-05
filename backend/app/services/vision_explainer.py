@@ -4,8 +4,8 @@ Module: Multimodal Image/Diagram Explainer
 Uses Groq Llama 3.2 11B Vision to explain images in plain language.
 """
 
-from config import get_groq_client
-from model_pool import model_pool_manager
+from app.core.config import get_groq_client, retry_llm_call, _active_pool
+from app.core.model_pool import model_pool_manager
 
 SYSTEM_PROMPT = """You are an accessibility assistant for neurodivergent users (ADHD, Dyslexia, Autism).
 Describe this image in simple, plain language. Focus on:
@@ -20,20 +20,26 @@ If the image appears to be decorative or a logo, say so briefly."""
 
 def explain_image(image_base64: str, context: str = "") -> str:
     """
-    Send a base64-encoded image to Llama 3.2 Vision for plain-language explanation.
-    
-    Args:
-        image_base64: Base64 string of the image (with or without data URL prefix)
-        context: Optional surrounding text from the page for better understanding
-    
-    Returns:
-        Plain-language explanation string
+    Send a base64-encoded image to Groq Vision for plain-language explanation.
+    Wrapped with Tenacity for automatic model rotation on rate limits.
     """
+    # Set the active pool so Tenacity's trigger_rotation targets vision_pool
+    _active_pool.set("vision_pool")
+    try:
+        return _explain_image_with_retry(image_base64, context)
+    except Exception as e:
+        print(f"[vision_explainer] Fatal Error after retries: {e}")
+        return f"Could not analyze this image: {str(e)}"
+
+@retry_llm_call
+def _explain_image_with_retry(image_base64: str, context: str = "") -> str:
     client = get_groq_client()
-    model = model_pool_manager.get_available_model("vision_pool")
+    model = model_pool_manager.get_current_model("vision_pool")
     
     if not model:
-        return "Could not analyze this image. The Vision server is currently busy."
+        raise Exception("All vision models are currently rate-limited.")
+    
+    print(f"[vision_explainer] 🎯 Using model: {model}")
     
     # Ensure proper data URL format
     if not image_base64.startswith("data:"):
@@ -52,17 +58,13 @@ def explain_image(image_base64: str, context: str = "") -> str:
         }
     ]
     
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_content}
-            ],
-            max_tokens=300,
-            temperature=0.3,
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"[vision_explainer] Error: {e}")
-        return f"Could not analyze this image: {str(e)}"
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_content}
+        ],
+        max_tokens=300,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content.strip()

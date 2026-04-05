@@ -7,7 +7,7 @@ from typing import Dict, Any
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
-from config import get_llm, invoke_with_retry
+from app.core.config import invoke_with_retry
 
 class ToneResponse(BaseModel):
     primary_tone: str = Field(description="The dominant tone of the text, e.g., 'Sarcastic', 'Informative', 'Persuasive', 'Hostile', 'Encouraging', 'Satirical'")
@@ -18,7 +18,6 @@ def analyze_tone(text_content: str) -> Dict[str, Any]:
     """
     Evaluates text and provides a breakdown of its tone, emotion, and implicit meaning.
     """
-    llm = get_llm("tone_analyzer")
     parser = JsonOutputParser(pydantic_object=ToneResponse)
     
     prompt = ChatPromptTemplate.from_messages([
@@ -36,8 +35,6 @@ Output strictly valid JSON matching the format instructions.
         ("user", "Text to evaluate:\n{text}\n\n{format_instructions}")
     ])
     
-    chain = prompt | llm | parser
-    
     safe_text = text_content[:3000].strip()
     if len(safe_text) < 10:
         return {
@@ -47,9 +44,10 @@ Output strictly valid JSON matching the format instructions.
         }
         
     result = invoke_with_retry(
-        chain, 
-        {"text": safe_text, "format_instructions": parser.get_format_instructions()},
-        task_name="tone_analyzer"
+        input_data={"text": safe_text, "format_instructions": parser.get_format_instructions()},
+        task_name="tone_analyzer",
+        prompt=prompt,
+        parser=parser
     )
     
     if result:

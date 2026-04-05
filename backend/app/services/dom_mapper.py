@@ -2,10 +2,9 @@ import os
 import json
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from config import get_llm, invoke_with_retry
+from app.core.config import invoke_with_retry
 
 load_dotenv()
 
@@ -170,10 +169,12 @@ parser = JsonOutputParser(pydantic_object=SiteSelectors)
 
 def generate_css_map(html_skeleton: str) -> dict:
     """Takes a raw HTML skeleton and uses Groq Llama 3 to return safe CSS selectors."""
-    llm = get_llm("dom_mapper")
-    chain = prompt_template | llm | parser
-    
-    response = invoke_with_retry(chain, {"skeleton": html_skeleton}, "dom_mapper")
+    response = invoke_with_retry(
+        input_data={"skeleton": html_skeleton},
+        task_name="dom_mapper",
+        prompt=prompt_template,
+        parser=parser
+    )
     
     if response:
         return response
