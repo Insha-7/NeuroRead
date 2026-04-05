@@ -15,12 +15,30 @@
   const styleEl = document.createElement("style");
   styleEl.textContent = `
     .nr-simplifying {
-      opacity: 0.5;
-      transition: opacity 0.3s ease;
+      opacity: 0.6;
+      border-left: 4px solid #A78BFA;
+      padding-left: 12px;
+      background: linear-gradient(90deg, rgba(124, 58, 237, 0.1) 0%, transparent 100%);
+      transition: all 0.3s ease;
       position: relative;
+    }
+    .nr-simplifying::after {
+      content: "⏳ Simplifying...";
+      position: absolute;
+      top: -8px;
+      right: 0;
+      font-size: 11px;
+      color: #7C3AED;
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #A78BFA;
+      font-weight: bold;
     }
     .nr-simplified {
       transition: all 0.5s ease;
+      border-left: 4px solid #10B981;
+      padding-left: 12px;
     }
   `;
   document.head.appendChild(styleEl);
@@ -130,15 +148,18 @@
         return { success: false, error: "No readable content found." };
       }
 
-      console.log(`[NeuroRead/AI] Found ${nodes.length} nodes to simplify.`);
+      console.log(`[NeuroRead/AI] Found ${nodes.length} nodes to simplify. Processing in background...`);
 
-      // Process in batches
-      for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
-        const batch = nodes.slice(i, i + BATCH_SIZE);
-        await processBatch(batch);
-      }
+      // Process in batches (fire-and-forget)
+      (async () => {
+        for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
+          const batch = nodes.slice(i, i + BATCH_SIZE);
+          await processBatch(batch);
+        }
+        console.log(`[NeuroRead/AI] Simplification complete.`);
+      })();
 
-      return { success: true };
+      return { success: true, count: nodes.length };
     },
 
     deactivate: function () {
