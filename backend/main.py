@@ -1,8 +1,10 @@
 import time
+import asyncio
+import json
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional, Dict
 
 app = FastAPI(title="NeuroRead API Settings Backend")
 
@@ -27,18 +29,14 @@ def health_check():
 
 @app.get("/settings")
 def get_settings():
-    """
-    Returns the core formatting settings. The frontend will 
-    safely map these variables to semantic DOM elements.
-    """
     return {
         "base_font_size": "20px",
         "line_height": "1.8",
         "colors": {
-            "background": "#FFFEF5",   # Soft warm white
-            "text": "#1A1A1A",         # Deep high-contrast grey
-            "highlight": "#6A0DAD",    # Deep purple for links/headers
-            "accent": "#E67E00"        # Vibrant orange for bullet points
+            "background": "#FFFEF5",
+            "text": "#1A1A1A",
+            "highlight": "#6A0DAD",
+            "accent": "#E67E00"
         }
     }
 
@@ -46,19 +44,16 @@ class SkeletonRequest(BaseModel):
     html_skeleton: str
 
 @app.post("/analyze-site")
-def analyze_site(request: SkeletonRequest):
-    """
-    Module 1: AI CSS Mapper & Styler
-    Accepts a basic DOM skeleton string and uses Llama 3 to return safely targeted CSS selectors 
-    AND optimized ADHD styling properties dynamically.
-    """
+async def analyze_site(request: SkeletonRequest):
+    from cache import cache
+    cached = cache.get("dom_mapper", request.html_skeleton)
+    if cached:
+        return {"success": True, "cached": True, **cached}
+
     from dom_mapper import generate_css_map
+    ai_response = await asyncio.to_thread(generate_css_map, request.html_skeleton)
     
-    # Generate the selectors and styles via Langchain/Groq
-    ai_response = generate_css_map(request.html_skeleton)
-    
-    return {
-        "success": True,
+    response_data = {
         "selectors": {
             "title_selector": ai_response.get("title_selector", "h1"),
             "body_selector": ai_response.get("body_selector", "p"),
@@ -98,48 +93,49 @@ def analyze_site(request: SkeletonRequest):
             }
         }
     }
+    cache.set("dom_mapper", request.html_skeleton, response_data)
+    return {"success": True, **response_data}
 
 @app.post("/analyze-focus")
-def analyze_focus(request: SkeletonRequest):
-    """
-    Module 8: AI True Focus Mode
-    Uses Llama 3 to aggressively identify sidebars, navs, and distracting containers to hide.
-    """
+async def analyze_focus(request: SkeletonRequest):
+    from cache import cache
+    cached = cache.get("focus_mapper", request.html_skeleton)
+    if cached:
+        return {"success": True, "cached": True, **cached}
+
     from focus_mapper import generate_focus_map
+    ai_response = await asyncio.to_thread(generate_focus_map, request.html_skeleton)
     
-    ai_response = generate_focus_map(request.html_skeleton)
-    
-    return {
-        "success": True,
+    response_data = {
         "selectors": {
             "main_content_selector": ai_response.get("main_content_selector", "article, main"),
             "hide_selectors": ai_response.get("hide_selectors", "nav, footer, aside")
         }
     }
+    cache.set("focus_mapper", request.html_skeleton, response_data)
+    return {"success": True, **response_data}
 
 class SimplifyRequest(BaseModel):
     text_chunks: List[str]
 
 @app.post("/simplify")
-def simplify_text(request: SimplifyRequest):
-    """
-    Module 3: AI Text Simplification
-    Accepts up to 10 text chunks and simplifies them for ADHD/Autism friendly reading.
-    """
+async def simplify_text(request: SimplifyRequest):
+    from cache import cache
+    chunks_str = json.dumps(request.text_chunks)
+    cached = cache.get("text_simplifier", chunks_str)
+    if cached:
+        return {"success": True, "cached": True, "simplified_chunks": cached}
+
     from text_simplifier import simplify_text_chunks
-    
-    # Chunked batching (max 10 chunks)
     max_batch = 10
     chunks = request.text_chunks[:max_batch]
+    simplified = await asyncio.to_thread(simplify_text_chunks, chunks)
     
-    simplified = simplify_text_chunks(chunks)
-    
+    cache.set("text_simplifier", chunks_str, simplified)
     return {
         "success": True,
         "simplified_chunks": simplified
     }
-
-from typing import List, Optional, Dict
 
 class ReaderRequest(BaseModel):
     raw_text: Optional[str] = None
@@ -147,13 +143,10 @@ class ReaderRequest(BaseModel):
     is_feed: bool = False
 
 @app.post("/focus-reader")
-def focus_reader_endpoint(request: ReaderRequest):
-    """
-    Module 9: Focus Reader Mode
-    Accepts raw scraped webpage text and returns a cleaned, structured, point-by-point JSON representation.
-    """
+async def focus_reader_endpoint(request: ReaderRequest):
     import time as _t
     from focus_reader import extract_reader_content
+    from cache import cache
     
     print(f"[focus-reader] === REQUEST RECEIVED === raw_text={len(request.raw_text or '')} chars, feed_items={len(request.feed_items or [])}, is_feed={request.is_feed}")
     
@@ -161,39 +154,41 @@ def focus_reader_endpoint(request: ReaderRequest):
         print("[focus-reader] REJECTED: no content provided")
         return {"success": False, "error": "No content provided"}
     
+    cache_key = json.dumps({"text": request.raw_text, "feed": request.feed_items, "is_feed": request.is_feed})
+    cached = cache.get("focus_reader", cache_key)
+    if cached:
+        print("[focus-reader] === SERVED FROM CACHE ===")
+        return {"success": True, "cached": True, "data": cached}
+    
     start = _t.time()
-    result = extract_reader_content(request.raw_text, request.feed_items, request.is_feed)
+    result = await asyncio.to_thread(extract_reader_content, request.raw_text, request.feed_items, request.is_feed)
     elapsed = _t.time() - start
     
     sections_count = len(result.get("sections", []))
     feed_count = len(result.get("feed", []))
     print(f"[focus-reader] === DONE in {elapsed:.1f}s === sections={sections_count}, feed={feed_count}")
     
+    cache.set("focus_reader", cache_key, result)
     return {
         "success": True,
         "data": result
     }
 
-
 @app.post("/voice")
 async def voice_transcribe(audio: UploadFile = File(...)):
-    """
-    Module 4: Voice Transcription
-    Accepts an audio file upload and returns Groq Whisper transcription.
-    """
     from voice_transcriber import transcribe_audio
     
     audio_bytes = await audio.read()
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Empty audio file")
     
-    transcription = transcribe_audio(audio_bytes, filename=audio.filename or "recording.webm")
+    transcription = await asyncio.to_thread(transcribe_audio, audio_bytes, audio.filename or "recording.webm")
     
     if not transcription:
         return {"success": False, "error": "No audible transcription"}
 
     from voice_intent import parse_intent
-    intent = parse_intent(transcription)
+    intent = await asyncio.to_thread(parse_intent, transcription)
     
     return {
         "success": True,
@@ -201,45 +196,48 @@ async def voice_transcribe(audio: UploadFile = File(...)):
         "intent": intent
     }
 
-
 class ImageExplainRequest(BaseModel):
     image_base64: str
     context: str = ""
 
 @app.post("/explain-image")
-def explain_image_endpoint(request: ImageExplainRequest):
-    """
-    Module: Multimodal Image/Diagram Explainer
-    Accepts a base64-encoded image and returns a plain-language explanation.
-    """
+async def explain_image_endpoint(request: ImageExplainRequest):
+    from cache import cache
+    cache_key = request.image_base64[:100] + request.context # Hash key base
+    cached = cache.get("vision_explainer", cache_key)
+    if cached:
+        return {"success": True, "cached": True, "explanation": cached}
+
     from vision_explainer import explain_image
     
     if not request.image_base64:
         raise HTTPException(status_code=400, detail="No image data provided")
     
-    explanation = explain_image(request.image_base64, request.context)
+    explanation = await asyncio.to_thread(explain_image, request.image_base64, request.context)
+    cache.set("vision_explainer", cache_key, explanation)
     
     return {
         "success": True,
         "explanation": explanation
     }
 
-
 class CamRequest(BaseModel):
     text_content: str
 
 @app.post("/cam-score")
-def cam_score_endpoint(request: CamRequest):
-    """
-    Module 5: Cognitive Accessibility Metric (CAM)
-    Evaluates page content and returns a score out of 100 with insights.
-    """
+async def cam_score_endpoint(request: CamRequest):
+    from cache import cache
+    cached = cache.get("cam_analyzer", request.text_content)
+    if cached:
+        return {"success": True, "cached": True, "cam": cached}
+
     from cam_analyzer import analyze_cam_score
     
     if not request.text_content:
         return {"success": False, "error": "No text provided"}
         
-    result = analyze_cam_score(request.text_content)
+    result = await asyncio.to_thread(analyze_cam_score, request.text_content)
+    cache.set("cam_analyzer", request.text_content, result)
     
     return {
         "success": True,
@@ -250,17 +248,19 @@ class ToneRequest(BaseModel):
     text_content: str
 
 @app.post("/analyze-tone")
-def analyze_tone_endpoint(request: ToneRequest):
-    """
-    Module 7: Content Tone & Emotion Analysis
-    Evaluates text and provides a breakdown of tone, emotion, and implicit meaning.
-    """
+async def analyze_tone_endpoint(request: ToneRequest):
+    from cache import cache
+    cached = cache.get("tone_analyzer", request.text_content)
+    if cached:
+        return {"success": True, "cached": True, "analysis": cached}
+
     from tone_analyzer import analyze_tone
     
     if not request.text_content:
         raise HTTPException(status_code=400, detail="No text data provided")
         
-    result = analyze_tone(request.text_content)
+    result = await asyncio.to_thread(analyze_tone, request.text_content)
+    cache.set("tone_analyzer", request.text_content, result)
     
     return {
         "success": True,

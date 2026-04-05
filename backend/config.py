@@ -23,7 +23,6 @@ MODELS = {
     "dom_mapper":       "moonshotai/kimi-k2-instruct-0905",   # Needs deep CSS understanding
     "text_simplifier":  "llama-3.1-8b-instant",      # Fast, good enough for ELI5
     "focus_mapper":     "qwen/qwen3-32b",      # Simple selector extraction
-    "focus_reader":     "llama-3.1-8b-instant", # Fast ~3s responses; 5K char chunks stay under 6K TPM
     "voice_intent":     "openai/gpt-oss-20b",      # Quick command parsing
     "whisper":          "whisper-large-v3-turbo",     # Audio transcription (fixed)
     "vision_explainer": "meta-llama/llama-4-scout-17b-16e-instruct",  # Multimodal image analysis
@@ -81,5 +80,30 @@ def invoke_with_retry(chain, input_data: dict, task_name: str = "unknown"):
                 time.sleep(wait)
             else:
                 print(f"[{task_name}] Groq Error (attempt {attempt}/{MAX_RETRIES}): {e}")
+                return None
+    return None
+
+import asyncio
+async def invoke_with_retry_async(chain, input_data: dict, task_name: str = "unknown"):
+    """
+    Async version of invoke_with_retry.
+    """
+    loop = asyncio.get_event_loop()
+    
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return await loop.run_in_executor(
+                None, 
+                lambda: chain.invoke(input_data)
+            )
+        except Exception as e:
+            error_str = str(e)
+            is_rate_limit = "429" in error_str or "rate_limit" in error_str.lower()
+            
+            if is_rate_limit and attempt < MAX_RETRIES:
+                wait = RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+                print(f"[{task_name}] Rate limited. Retrying in {wait}s...")
+                await asyncio.sleep(wait)
+            else:
                 return None
     return None
