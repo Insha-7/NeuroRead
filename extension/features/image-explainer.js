@@ -59,61 +59,68 @@
       }
 
       .nr-explain-card {
-        position: relative;
-        margin-top: 8px;
-        background: linear-gradient(135deg, #1E1B4B, #312E81);
-        color: #E0E7FF;
-        border: 1px solid rgba(124, 58, 237, 0.4);
-        border-radius: 12px;
-        padding: 16px;
-        font-family: 'Inter', system-ui, sans-serif;
-        font-size: 14px;
-        line-height: 1.6;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        max-width: 600px;
-        z-index: 9999;
-        animation: nr-fade-in 0.3s ease;
+        position: absolute !important;
+        top: calc(100% + 8px) !important;
+        left: 0 !important;
+        width: 400px !important;
+        max-width: 90vw !important;
+        margin-top: 0 !important;
+        background: linear-gradient(135deg, #1E1B4B, #312E81) !important;
+        color: #E0E7FF !important;
+        border: 1px solid rgba(124, 58, 237, 0.4) !important;
+        border-radius: 12px !important;
+        padding: 16px !important;
+        font-family: var(--nr-font-family, 'Inter', system-ui, sans-serif) !important;
+        font-size: var(--nr-font-size, 14px) !important;
+        line-height: var(--nr-line-height, 1.6) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+        z-index: 999999 !important;
+        animation: nr-fade-in 0.3s ease !important;
       }
       @keyframes nr-fade-in {
         from { opacity: 0; transform: translateY(-8px); }
         to { opacity: 1; transform: translateY(0); }
       }
       .nr-explain-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid rgba(124, 58, 237, 0.3);
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 10px !important;
+        padding-bottom: 8px !important;
+        border-bottom: 1px solid rgba(124, 58, 237, 0.3) !important;
       }
       .nr-explain-card-title {
-        font-weight: 700;
-        font-size: 13px;
-        color: #A78BFA;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        color: #A78BFA !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
       }
       .nr-explain-card-actions {
-        display: flex;
-        gap: 8px;
+        display: flex !important;
+        gap: 8px !important;
       }
       .nr-explain-card-actions button {
-        background: rgba(124, 58, 237, 0.2);
-        color: #C4B5FD;
-        border: 1px solid rgba(124, 58, 237, 0.3);
-        border-radius: 16px;
-        padding: 4px 12px;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.15s ease;
+        background: rgba(124, 58, 237, 0.2) !important;
+        color: #C4B5FD !important;
+        border: 1px solid rgba(124, 58, 237, 0.3) !important;
+        border-radius: 16px !important;
+        padding: 4px 12px !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: background 0.15s ease !important;
       }
       .nr-explain-card-actions button:hover {
-        background: rgba(124, 58, 237, 0.4);
+        background: rgba(124, 58, 237, 0.4) !important;
       }
       .nr-explain-card p {
-        margin: 0;
-        color: #E0E7FF;
+        margin: 0 !important;
+        color: #E0E7FF !important;
+        font-size: var(--nr-font-size, 14px) !important;
+        line-height: var(--nr-line-height, 1.6) !important;
+        font-weight: normal !important;
+        font-family: var(--nr-font-family, 'Inter', system-ui, sans-serif) !important;
       }
     `;
     document.head.appendChild(styleEl);
@@ -245,12 +252,24 @@
       <p>${explanation}</p>
     `;
 
-    // Insert after the image (or after wrapper)
-    const wrapper = img.closest(".nr-img-wrap") || img.parentElement;
-    wrapper.after(card);
+    // Append inside the wrapper so position absolute attaches properly
+    const wrapper = img.closest(".nr-img-wrap");
+    if (wrapper) {
+      wrapper.appendChild(card);
+    } else {
+      img.parentElement.appendChild(card);
+    }
+
+    // Prevent clicks inside the card from bubbling up to parent <a> tags
+    card.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    });
 
     // Read aloud button
-    card.querySelector(".nr-speak-btn").addEventListener("click", () => {
+    card.querySelector(".nr-speak-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(explanation);
       u.rate = 1.0;
@@ -259,7 +278,9 @@
     });
 
     // Close button
-    card.querySelector(".nr-close-btn").addEventListener("click", () => {
+    card.querySelector(".nr-close-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
       speechSynthesis.cancel();
       card.remove();
     });

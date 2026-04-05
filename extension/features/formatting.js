@@ -68,6 +68,7 @@
 :root {
   --nr-font-size: ${fontSize};
   --nr-line-height: ${lineHeight};
+  --nr-font-family: ${t.font_family};
 }
 
 /* --- Page & Container --- */
@@ -85,7 +86,7 @@ article,
 }
 
 /* Constrain column width for readability return sweeps */
-:is(${s.title_selector}, ${s.body_selector}, ${s.header_selectors}):not(#nr-toc-container *) {
+:is(${s.title_selector}, ${s.body_selector}, ${s.header_selectors}):not(#nr-toc-container *):not(.nr-explain-card):not(.nr-explain-card *) {
   max-width: ${l.content_max_width} !important;
   margin-left: auto !important;
   margin-right: auto !important;
@@ -93,7 +94,7 @@ article,
 }
 
 /* --- Paragraph text --- */
-:is(${s.body_selector}):not(#nr-toc-container *) {
+:is(${s.body_selector}):not(#nr-toc-container *):not(.nr-explain-card):not(.nr-explain-card *) {
   font-size: var(--nr-font-size) !important;
   line-height: var(--nr-line-height) !important;
   color: ${c.text} !important;
@@ -105,10 +106,10 @@ article,
 }
 
 /* --- Italics Override --- */
-${t.override_italic ? 'i:not(#nr-toc-container i), em:not(#nr-toc-container em) { font-style: normal !important; font-weight: 500 !important; }' : ''}
+${t.override_italic ? 'i:not(#nr-toc-container i):not(.nr-explain-card i), em:not(#nr-toc-container em):not(.nr-explain-card em) { font-style: normal !important; font-weight: 500 !important; }' : ''}
 
 /* --- Page title --- */
-:is(${s.title_selector}):not(#nr-toc-container *) {
+:is(${s.title_selector}):not(#nr-toc-container *):not(.nr-explain-card):not(.nr-explain-card *) {
   color: ${c.highlight} !important;
   font-size: 42px !important;
   font-weight: 800 !important;
@@ -116,7 +117,7 @@ ${t.override_italic ? 'i:not(#nr-toc-container i), em:not(#nr-toc-container em) 
 }
 
 /* --- Section headings --- */
-:is(${s.header_selectors}):not(#nr-toc-container *) {
+:is(${s.header_selectors}):not(#nr-toc-container *):not(.nr-explain-card):not(.nr-explain-card *) {
   color: ${c.highlight} !important;
   font-size: 26px !important;
   font-weight: 700 !important;
@@ -125,8 +126,8 @@ ${t.override_italic ? 'i:not(#nr-toc-container i), em:not(#nr-toc-container em) 
 }
 
 /* --- Links (exclude TOC) --- */
-a:not(#nr-toc-container a):not(#nr-toc-list a) { color: #2563EB !important; }
-a:visited:not(#nr-toc-container a):not(#nr-toc-list a) { color: #5B21B6 !important; }
+a:not(#nr-toc-container a):not(#nr-toc-list a):not(.nr-explain-card a) { color: #2563EB !important; }
+a:visited:not(#nr-toc-container a):not(#nr-toc-list a):not(.nr-explain-card a) { color: #5B21B6 !important; }
 :is(${s.title_selector}) a, :is(${s.header_selectors}) a {
   color: ${c.highlight} !important;
   text-decoration: none !important;
@@ -139,10 +140,10 @@ b:not(#nr-toc-container b), strong:not(#nr-toc-container strong) {
 }
 
 /* --- Lists (exclude TOC & native sidebars) --- */
-ul:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *), ol:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
+ul:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *):not(.nr-explain-card *), ol:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *):not(.nr-explain-card *) {
   padding-left: ${l.list_indent} !important;
 }
-li:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *) {
+li:not(#nr-toc-container *):not(.vector-toc *):not(#vector-toc *):not(.nr-explain-card *) {
   margin-bottom: ${l.list_item_spacing} !important;
   font-size: var(--nr-font-size) !important;
   line-height: var(--nr-line-height) !important;
@@ -287,18 +288,48 @@ footer *,
     },
   };
 
+  // Function to apply typography regardless of formatting being enabled
+  function applyGlobalTypography(state) {
+    if (!state || !state.typographyOverrides) return;
+    const over = state.typographyOverrides;
+    
+    // Set variables globally on root
+    if (over.fontSize) document.documentElement.style.setProperty('--nr-font-size', over.fontSize + 'px');
+    if (over.lineSpacing) document.documentElement.style.setProperty('--nr-line-height', over.lineSpacing);
+
+    // Apply baseline CSS if not present
+    if (!document.getElementById("nr-global-typography")) {
+      const style = document.createElement("style");
+      style.id = "nr-global-typography";
+      // Only target common text elements, not layout wrappers, to avoid breaking sites
+      style.textContent = `
+        p:not(#nr-toc-container *):not(.nr-explain-card *),
+        li:not(#nr-toc-container *):not(.nr-explain-card *):not(#p-lang-btn *):not(.vector-menu-content-list *),
+        h1:not(#nr-toc-container *):not(.nr-explain-card *),
+        h2:not(#nr-toc-container *):not(.nr-explain-card *),
+        h3:not(#nr-toc-container *):not(.nr-explain-card *),
+        h4:not(#nr-toc-container *):not(.nr-explain-card *),
+        h5:not(#nr-toc-container *):not(.nr-explain-card *),
+        h6:not(#nr-toc-container *):not(.nr-explain-card *) {
+          font-size: var(--nr-font-size) !important;
+          line-height: var(--nr-line-height) !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
   // Real-time listener for typography changes from the popup
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.nrState && window.__NR_FORMATTING_LOADED && document.getElementById(STYLE_ID)) {
-      const state = changes.nrState.newValue || {};
-      if (state.typographyOverrides) {
-         if (state.typographyOverrides.fontSize) {
-            document.documentElement.style.setProperty('--nr-font-size', state.typographyOverrides.fontSize + 'px');
-         }
-         if (state.typographyOverrides.lineSpacing) {
-            document.documentElement.style.setProperty('--nr-line-height', state.typographyOverrides.lineSpacing);
-         }
-      }
+    if (namespace === 'local' && changes.nrState && window.__NR_FORMATTING_LOADED) {
+      applyGlobalTypography(changes.nrState.newValue);
+    }
+  });
+
+  // Apply on initial script load regardless of active features
+  chrome.storage.local.get("nrState", (res) => {
+    if (res.nrState && window.__NR_FORMATTING_LOADED) {
+      applyGlobalTypography(res.nrState);
     }
   });
 })();
