@@ -34,7 +34,25 @@ graph TD
     FastAPI -->|JSON Accessibility Map| ChromeExt
     ChromeExt -->|DOM Injection| User
 ```
+```mermaid
+sequenceDiagram
+    participant S as Service (CAM/Simplify)
+    participant T as Tenacity Decorator
+    participant P as ModelPoolManager
+    participant G as Groq API
 
+    S->>T: Invoke LLM Request
+    T->>G: Request with Llama-3.1-70B
+    G-->>T: Error 429 (Rate Limit)
+    T->>P: trigger_rotation()
+    P->>P: Rotate 'text_pool': Push Llama-3.1-70B to back
+    T->>T: Wait (Exponential Backoff)
+    T->>P: get_current_model()
+    P-->>T: Return Mixtral-8x7b
+    T->>G: Retry Request with Mixtral
+    G-->>T: Success 200
+    T-->>S: Return Result
+```
 ### 🧠 Core Logic & Rationale
 
 #### 1. AI/ML Model Selection & Why Groq Over Alternatives
